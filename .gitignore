@@ -1,0 +1,27 @@
+# Data and databases
+data/cic-ids-2017/
+data/*.db
+*.db
+*.sqlite
+
+# Trained model binaries
+ml/model/*.joblib
+ml/model/*.pkl
+
+# Experiment output
+eval/results/
+eval/figures/
+dashboard/data/*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Compiled eBPF objects (if any produced outside BCC)
+*.o
+
+# OS / editor
+.DS_Store
+*.swp
