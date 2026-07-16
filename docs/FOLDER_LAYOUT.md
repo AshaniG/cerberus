@@ -13,7 +13,11 @@ cerberus/
 ├── docs/                      # All project documentation
 │   ├── PROJECT_CONTEXT.md     # What/why/how — the source of truth (read first)
 │   ├── SETUP_GUIDE.md         # Environment setup steps
-│   └── FOLDER_LAYOUT.md       # This file
+│   ├── FOLDER_LAYOUT.md       # This file
+│   ├── MONGODB_ATLAS.md       # Atlas setup for optional mirror
+│   ├── SUPERVISOR_DEMO.md     # 12-minute viva / supervisor script
+│   ├── HOW_TO_RUN.md          # Step-by-step Ubuntu runbook (start here to demo)
+│   └── STATUS.md              # Done vs remaining (share for viva readiness)
 │
 ├── kernel/                    # Tier 1 — the in-kernel eBPF programs (restricted C)
 │   ├── hello_xdp.c            # M0: attach at XDP hook, pass all packets
@@ -26,21 +30,27 @@ cerberus/
 │   └── ddos_loader.py         # M2+: loads xdp_ddos.c, exposes the maps
 │
 ├── backend/                   # Cold-path userspace services (Python)
-│   ├── collector.py           # M3: reads BPF maps on a timer, writes to SQLite
-│   ├── control_loop.py        # M4: adaptive threshold — writes new values to map
-│   └── db.py                  # M3: SQLite schema + helpers (path via __file__)
+│   ├── serve.py               # M3+: one process — XDP + collector + control + API
+│   ├── api.py                 # FastAPI REST + static dashboard
+│   ├── bpf_session.py         # Shared attach / map read-write (map contract)
+│   ├── collector.py           # Reads BPF maps → SQLite (+ Atlas mirror)
+│   ├── control_loop.py        # M4: adaptive threshold → live map write
+│   ├── db.py                  # SQLite schema + helpers (path via __file__)
+│   ├── mongo.py               # Optional MongoDB Atlas client (no-op if unset)
+│   └── runtime_state.py       # Shared flags for API (attack demo, adaptive, ml)
 │
 ├── cli/                       # M3 — the operator's steering wheel
-│   └── ddosctl.py             # status / top / watch / threshold / clear commands
+│   └── ddosctl.py             # status / top / watch / threshold / clear / events
 │
 ├── ml/                        # Tier 2 — the decision tree (M5)
 │   ├── train_tree.py          # trains sklearn decision tree on CIC-IDS-2017
 │   ├── classify.py            # loads trained tree, scores the ambiguous slice
 │   └── model/                 # saved trained model (joblib) lives here
 │
-├── dashboard/                 # M3 — visualization
-│   ├── index.html             # plain HTML + Chart.js dashboard
-│   └── data/                  # JSON the dashboard reads (written by collector)
+├── dashboard/                 # M3 — ops console (served by FastAPI)
+│   ├── index.html
+│   ├── styles.css
+│   └── app.js
 │
 ├── attack/                    # M6 — traffic generation for evaluation
 │   ├── attack_gen.py          # hping3 wrapper — synthetic DDoS traffic
@@ -55,8 +65,9 @@ cerberus/
 │   ├── cic-ids-2017/          # downloaded CIC-IDS-2017 CSVs (gitignored)
 │   └── cerberus.db            # SQLite database (gitignored)
 │
-├── requirements.txt           # Python deps for the ML/analysis venv
-└── .gitignore                 # ignore data/, model binaries, __pycache__, *.db
+├── .env.example               # MONGODB_URI template (copy to .env)
+├── requirements.txt           # Python deps for API / ML / eval
+└── .gitignore
 ```
 
 ## Notes on a few deliberate choices
@@ -83,7 +94,7 @@ cerberus/
 | M0 | `kernel/hello_xdp.c`, `loader/hello_loader.py` |
 | M1 | `kernel/count_all.c`, `loader/count_loader.py` |
 | M2 | `kernel/xdp_ddos.c`, `loader/ddos_loader.py` |
-| M3 | `backend/collector.py`, `backend/db.py`, `cli/ddosctl.py`, `dashboard/` |
+| M3 | `backend/{serve,api,bpf_session,collector,db,mongo}.py`, `cli/ddosctl.py`, `dashboard/` |
 | M4 | `backend/control_loop.py` |
 | M5 | `ml/` (train, classify, model), `requirements.txt`, `data/cic-ids-2017/` |
-| M6 | `attack/`, `eval/` |
+| M6 | `attack/`, `eval/`, `docs/SUPERVISOR_DEMO.md` |
