@@ -65,13 +65,38 @@ Do these in order. Until §A–C are green, the viva demo is not fully proven.
 
 ---
 
-## 3. One-line summary you can say
+## 3. Optional “do more” (stronger 1-year / higher marks)
 
-> **“Implementation of the full Cerberus stack (eBPF Tier‑1, adaptive control, selective ML, API/dashboard, attack/eval) is complete in the repo. Remaining work is running it on Ubuntu, training the ML model, and capturing eval results for the viva.”**
+**Not required for the original build plan.** Do these *after* §2 A–D are green if you want a thicker thesis and viva.
+
+### High value (recommended order)
+
+- [ ] Ubuntu live proof stable (no crashes during a full demo)
+- [ ] Train ML on **real CIC-IDS-2017** (not only synthetic)
+- [ ] Run eval **3–5 times**; average detection vs flash-crowd FP; keep all CSVs
+- [ ] Thesis figures: architecture diagram, threshold-over-time, static vs adaptive bar chart
+- [ ] Screenshot pack of the live dashboard (Tier-1 ON, attack, adaptive) for the report
+
+### Nice extras (if time)
+
+- [ ] MongoDB Atlas ON for supervisor “cloud DB” story (`MONGODB_ATLAS.md`)
+- [ ] Stronger flash crowd from **2 machines/VMs** (more convincing FP test)
+- [ ] Short note on drop behaviour / rough timing in the evaluation chapter
+- [ ] Dashboard polish screenshots + one-page “how to demo” printed checklist
+
+### Skip (wastes time vs marks)
+
+- React rewrite, microservices, Kubernetes, deep neural nets, multi-datacentre / production hardening
 
 ---
 
-## 4. Quick pointer map
+## 4. One-line summary you can say
+
+> **“Implementation of the full Cerberus stack (eBPF Tier‑1, adaptive control, selective ML, API/dashboard, attack/eval) is complete in the repo. Remaining work is running it on Ubuntu, training the ML model, and capturing eval results for the viva. Optional extras (CIC training, repeated evals, thesis figures) can be added after that for a stronger submission.”**
+
+---
+
+## 5. Quick pointer map
 
 | Question | Open this |
 |----------|-----------|
@@ -80,4 +105,4 @@ Do these in order. Until §A–C are green, the viva demo is not fully proven.
 | Machine install | [`SETUP_GUIDE.md`](SETUP_GUIDE.md) |
 | Supervisor demo script | [`SUPERVISOR_DEMO.md`](SUPERVISOR_DEMO.md) |
 | Mongo Atlas (optional) | [`MONGODB_ATLAS.md`](MONGODB_ATLAS.md) |
-| Done vs remaining | **This file** (`STATUS.md`) |
+| Done vs remaining + optional more | **This file** (`STATUS.md`) |

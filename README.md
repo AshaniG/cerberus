@@ -14,7 +14,7 @@ real attacks — beating a static-threshold baseline.
 1. Read [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) — architecture, novelty, milestones.
 2. Follow [`docs/SETUP_GUIDE.md`](docs/SETUP_GUIDE.md) — Ubuntu 24.04 + BCC.
 3. **Run the system:** [`docs/HOW_TO_RUN.md`](docs/HOW_TO_RUN.md) — step-by-step Ubuntu commands.
-4. **Done vs remaining:** [`docs/STATUS.md`](docs/STATUS.md) — show this for viva readiness.
+4. **Done vs remaining (+ optional more):** [`docs/STATUS.md`](docs/STATUS.md) — show this for viva readiness.
 5. Optional Atlas: [`docs/MONGODB_ATLAS.md`](docs/MONGODB_ATLAS.md).
 6. Supervisor demo: [`docs/SUPERVISOR_DEMO.md`](docs/SUPERVISOR_DEMO.md).
 
