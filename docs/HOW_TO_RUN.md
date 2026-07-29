@@ -1,4 +1,4 @@
-# Cerberus — how to run (Ubuntu)
+ # Cerberus — how to run (Ubuntu)
 
 Follow this top to bottom on **bare-metal Ubuntu 24.04**.  
 Mac/Windows can edit code and smoke-test the dashboard UI only — **eBPF/XDP must run on Ubuntu**.

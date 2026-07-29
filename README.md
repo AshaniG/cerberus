@@ -11,6 +11,7 @@ real attacks — beating a static-threshold baseline.
 
 ## Start here
 
+0. **Feeling lost about how the parts connect?** Read [`docs/HOW_IT_ALL_CONNECTS.md`](docs/HOW_IT_ALL_CONNECTS.md) — attack → kernel → maps → backend → ML → dashboard, in plain language.
 1. Read [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) — architecture, novelty, milestones.
 2. Follow [`docs/SETUP_GUIDE.md`](docs/SETUP_GUIDE.md) — Ubuntu 24.04 + BCC.
 3. **Run the system:** [`docs/HOW_TO_RUN.md`](docs/HOW_TO_RUN.md) — step-by-step Ubuntu commands.
