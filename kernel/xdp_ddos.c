@@ -30,8 +30,8 @@
  *   sudo python3 loader/ddos_loader.py <interface> [--threshold N]
  */
 
-#include <linux/if_ether.h>
-#include <linux/ip.h>
+#include <uapi/linux/if_ether.h>
+#include <uapi/linux/ip.h>
 
 /* Per-source-IP packet counters. Max entries keeps map memory bounded. */
 BPF_HASH(ip_count, u32, u64, 10240);
@@ -66,7 +66,7 @@ int xdp_ddos(struct xdp_md *ctx)
         return XDP_PASS;
 
     /* Only IPv4; IPv6 / ARP / etc. pass through untouched. */
-    if (eth->h_proto != htons(ETH_P_IP))
+    if (eth->h_proto != bpf_htons(ETH_P_IP))
         return XDP_PASS;
 
     struct iphdr *iph = (void *)(eth + 1);

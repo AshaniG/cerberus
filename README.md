@@ -8,7 +8,7 @@ only ambiguous traffic escalates to a small ML decision tree in userspace
 **without reloading** the kernel program. The research shows this design keeps
 false positives low against legitimate flash-crowd surges while still detecting
 real attacks — beating a static-threshold baseline.
-
+    
 ## Start here
 
 0. **Feeling lost about how the parts connect?** Read [`docs/HOW_IT_ALL_CONNECTS.md`](docs/HOW_IT_ALL_CONNECTS.md) — attack → kernel → maps → backend → ML → dashboard, in plain language.

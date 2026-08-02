@@ -49,7 +49,7 @@ class BpfSession:
             if self.attached:
                 raise RuntimeError("XDP already attached")
             print(f"Compiling {KERNEL_SRC} ...")
-            self.b = BPF(src_file=str(KERNEL_SRC))
+            self.b = BPF(src_file=str(KERNEL_SRC), cflags=["-Wno-return-type"])
             fn = self.b.load_func("xdp_ddos", BPF.XDP)
             flags = 0
             mode = "native"
