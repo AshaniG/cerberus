@@ -23,7 +23,7 @@ without measurably compromising attack-detection accuracy, and the proposed arch
 should be able to reduce the false-positive rate on flash-crowd traffic to a measurably
 lower figure than existing static baselines while keeping detection accuracy at an
 acceptable level. The remainder of the methodology is built to test this expectation
-directly, rather than to build new theory inductively from open-ended observation. The
+head-on, rather than to build new theory inductively from open-ended observation. The
 engineering decisions described in Chapter One - such as choosing a decision tree over a
 neural network for the escalation tier, or keeping that classifier in userspace rather
 than compiling it into the XDP program - are not driven by a single overriding research
@@ -49,7 +49,7 @@ established databases and venues - ScienceDirect, IEEE Xplore, arXiv, Springer, 
 - searched for publications on DDoS detection, with claims cross-checked against their
 original source where possible, and each source's evaluation methodology documented in
 order to identify the specific "flash-crowd evaluation gap" this dissertation targets.
-The second is experiment-derived fact, gathered by instrumenting the prototype directly
+The second is experiment-derived fact, gathered by instrumenting the prototype itself
 during testing: packet counters and timestamps read from BPF maps, CPU utilisation
 gathered from standard Linux tools such as perf and /proc/stat, and ground-truth labels -
 attack or legitimate - attached to each generated packet by the traffic-generation
@@ -76,7 +76,7 @@ behaviour difficult to predict in advance when testing different feature sets or
 sizes, so an agile framework built around a visible backlog and short iterations was
 judged more suitable than a stage-gated framework such as PRINCE2. PRINCE2 tends to
 define requirements and deliverables in detail up front, which sits uncomfortably with
-the genuine technical uncertainty in this project - for instance, whether a given
+the real technical uncertainty in this project - for instance, whether a given
 decision-tree depth will fit inside the verifier's instruction-count limit on the
 available kernel version is not something that can be known until it is tried. A visible,
 continually reprioritised task board handles that kind of uncertainty far better than a
@@ -125,7 +125,7 @@ fact-collection process behind it. It showed, stage by stage, how each part of t
 research workflow - from problem identification through to final evaluation - is
 addressed by a specific part of the dissertation's design, and explained why an agile,
 Kanban-style approach to project management was chosen over a more formal method such as
-PRINCE2, given the genuine technical uncertainty of working inside the eBPF verifier's
+PRINCE2, given the real technical uncertainty of working inside the eBPF verifier's
 constraints. The eight-week project schedule was set out, and the ethical considerations
 around generating attack traffic and using a licensed dataset were discussed. The
 detailed design of the prototype system follows in Chapter Four.

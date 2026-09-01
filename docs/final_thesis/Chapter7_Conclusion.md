@@ -52,9 +52,9 @@ to read results back through the system's own dashboard produced numbers that ma
 sense, because the dashboard's own polling traffic was itself subject to the filtering
 being tested, and a low threshold silenced the very API being used to observe the system.
 Recognising this - that a defence mechanism can interfere with the tool measuring it -
-led directly to reading the kernel maps with bpftool instead, which removed the problem.
+led straight to reading the kernel maps with bpftool instead, which removed the problem.
 
-The third was a genuine limitation in the machine-learning tier, and one that is
+The third was a real limitation in the machine-learning tier, and one that is
 acknowledged rather than hidden: the features used at inference time, drawn from what the
 kernel maps can cheaply provide, are a simplified approximation of the richer flow-level
 features CIC-IDS-2017 itself contains. This does not affect the kernel filtering, the
@@ -71,7 +71,7 @@ defence good. Before starting, "good" meant catching attacks. By the end, it mea
 something narrower and, in this researcher's view, more honest: catching attacks without
 quietly punishing the people the system exists to protect in the first place. A defence
 that blocks everything technically has perfect detection and is also useless, and it was
-only through building and measuring the flash-crowd scenario directly that this stopped
+only by building and measuring the flash-crowd scenario first-hand that this stopped
 being an abstract point from the literature review and became something demonstrated with
 real numbers.
 
@@ -93,7 +93,7 @@ and where problems generally had to be found by running the code rather than by 
 documentation in advance. Debugging behaviour that spans the kernel and userspace boundary
 was demanding in a way that debugging a single Python script never is, since the cause of
 an odd symptom in one half was often sitting in the other. Undertaking a project of this
-technical depth with limited prior systems-programming experience was genuinely
+technical depth with limited prior systems-programming experience was honestly
 challenging throughout, and the decision, explained in Chapter Three, to work in small,
 individually-tested milestones rather than attempting the whole system at once is what
 made that challenge manageable rather than overwhelming.
@@ -117,11 +117,11 @@ place, which is precisely the gap identified as motivation in Section 1.5.
 ## 7.5 Future Recommendations
 
 Several concrete extensions follow naturally from the limitations acknowledged above.
-Retraining the classifier on features that can genuinely be measured at inference time,
+Retraining the classifier on features that can actually be measured at inference time,
 rather than on the richer offline dataset features it currently learns from, would close
 the gap between the reported 0.86 accuracy and the classifier's real behaviour in
 production, and is the most important of these. Repeating the flash-crowd evaluation
-across genuinely separate physical machines, with the adaptive control loop choosing its
+across truly separate physical machines, with the adaptive control loop choosing its
 own threshold during the run rather than a fixed stand-in value, and running each scenario
 several times to report a mean and a spread, would turn the current demonstration into a
 fuller statistical result. Extending the comparison to include at least one previously

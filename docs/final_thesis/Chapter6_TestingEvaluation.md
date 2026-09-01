@@ -15,7 +15,7 @@ the current evaluation is strong and where it is limited.
 
 Because the behaviour that matters here is externally visible - in the kernel maps, in
 the database, on the dashboard - testing a given piece of functionality generally meant
-running it and observing that visible state directly, rather than relying only on
+running it and watching that visible state change, rather than relying only on
 isolated unit tests that would not exercise the kernel-userspace interaction the whole
 design depends on. The cases below are the ones judged most important; a small number of
 additional cases are recorded in the appendix.
@@ -45,7 +45,7 @@ additional cases are recorded in the appendix.
 Each evaluation run followed the same procedure, so that comparisons between
 configurations would be fair. The threshold and adaptive setting were fixed for the run,
 the counters were reset to zero, a mixture of attack and flash-crowd traffic was
-generated, and the resulting per-source outcomes were read directly from the kernel maps
+generated, and the resulting per-source outcomes were read straight from the kernel maps
 using bpftool rather than through the dashboard - a deliberate choice, explained in
 Chapter Five, made after discovering that reading through the dashboard's own API could
 be affected by the very filtering under test. The same generated traffic was then run
@@ -85,7 +85,7 @@ blocked none of them.
 | Static threshold (baseline) | Yes | 12 |
 | Adaptive threshold (this work) | Yes | 0 |
 
-This result answers the research question directly. Detection is preserved across both
+This result speaks to the research question head-on. Detection is preserved across both
 configurations - the improvement is not bought by missing attacks - and the entire
 difference lies in how each configuration treats traffic that is heavy but legitimate.
 Expressed as a rate, the static baseline produced a 100 percent false-positive rate
@@ -95,7 +95,7 @@ full attack detection maintained in both cases.
 **Live demonstration at scale.** Separately from the controlled flash-crowd comparison
 above, the system was also run against a sustained flood to confirm it behaves correctly
 under real volume rather than only in a small controlled scenario. Reading the kernel
-maps directly during this run showed 1,856,935 packets seen in total, 1,656,847 of them
+maps during this run showed 1,856,935 packets seen in total, 1,656,847 of them
 dropped from the flooding source, and 200,088 passed, the great majority of which came
 from a separate, low-volume source that the filter correctly left untouched throughout.
 
@@ -104,7 +104,7 @@ from a separate, low-volume source that the filter correctly left untouched thro
 Two limitations of the evaluation as it currently stands should be stated plainly, rather
 than left for an examiner to find. First, the flash-crowd scenario was run on a single
 host, using distinct source addresses to represent twelve separate "users" rather than
-twelve genuinely separate physical machines; a multi-host setup, with the traffic
+twelve actually separate physical machines; a multi-host setup, with the traffic
 generator kept on hardware separate from the system under test as specified in Section
 1.9.1, would strengthen the external validity of this result, and the architecture already
 supports it without any change. Second, the adaptive-configuration column above used a
@@ -120,12 +120,12 @@ discussed in Chapter Seven.
 
 Combining conventional functional testing with a controlled comparative experiment suits
 a project whose central claim is comparative rather than absolute. The functional tests
-establish that the mechanism genuinely works - that packets are counted, dropped over
+establish that the mechanism actually works - that packets are counted, dropped over
 threshold, and that the threshold and the classifier behave as designed - which has to be
 true before any comparative result can be trusted. The experiment then establishes that
 the working mechanism produces the predicted advantage over a baseline. Reading results
-from the kernel maps directly, rather than through the system's own dashboard, was an
-important refinement made partway through testing, and one that removed a genuine source
+straight from the kernel maps, rather than through the system's own dashboard, was an
+important refinement made partway through testing, and one that removed a real source
 of measurement error rather than a hypothetical one.
 
 ## 6.7 Chapter Summary

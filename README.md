@@ -41,13 +41,22 @@ sudo python3 loader/count_loader.py eth0      # M1
 sudo python3 loader/ddos_loader.py eth0       # M2
 ```
 
-CLI (against running API):
+CLI (against running API, falls back to reading SQLite directly if the API
+isn't up):
 
 ```bash
 python3 cli/ddosctl.py status
 python3 cli/ddosctl.py top
 python3 cli/ddosctl.py watch
+python3 cli/ddosctl.py threshold 300
+python3 cli/ddosctl.py clear
+python3 cli/ddosctl.py events
+python3 cli/ddosctl.py attack       # is an attack happening right now?
 ```
+
+Optional: run `bash cli/install.sh` once to install `ddosctl` as a real
+terminal command (like `git` or `ls`), so you can type `ddosctl status`
+instead of `python3 cli/ddosctl.py status` from any folder.
 
 Train Tier-2 tree (optional but recommended before demo):
 

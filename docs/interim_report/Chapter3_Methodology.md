@@ -99,6 +99,8 @@ week depending on what the implementation revealed.
 
 *Table 3.2: Project timeline*
 
+{{FIGURE_TIMELINE}}
+
 ### 3.6.2 Ethical Considerations
 
 Several ethical safeguards were built into this research, given that the attack traffic
@@ -176,4 +178,3 @@ Architectures for Parallel Processing, ICA3PP 2025, LNCS vol. 16387, Springer, 2
 
 13. T. Farasat, J. Kim, and J. Posegga, "SmartX Intelligent Sec: A Security Framework
 Based on Machine Learning and eBPF/XDP," arXiv:2410.20244, 2024.
-</content>

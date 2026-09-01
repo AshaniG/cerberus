@@ -289,6 +289,46 @@ button.danger-btn {
   border: 1px solid rgba(232,93,93,.4);
 }
 
+.console-output {
+  background: #060a08;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  height: 220px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  margin-bottom: 0.6rem;
+}
+.console-output .c-cmd { color: var(--ink); font-weight: 600; }
+.console-output .c-cmd::before { content: "$ "; color: var(--accent); }
+.console-output .c-ok { color: var(--accent); font-weight: 600; }
+.console-output .c-bad { color: var(--danger); font-weight: 600; }
+.console-output .c-muted { color: var(--muted); }
+.console-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #060a08;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+}
+.console-prompt { color: var(--accent); font-family: var(--mono); font-weight: 700; }
+.console-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  padding: 0.2rem 0;
+}
+.console-input:focus { outline: none; }
+
 footer {
   display: flex;
   gap: 1.5rem;

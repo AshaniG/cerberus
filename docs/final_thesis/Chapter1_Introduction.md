@@ -32,16 +32,16 @@ protocol-level floods, together with the persistence of application-layer floods
 mimic trusted users, makes a static rule unreliable: traffic from a popular promotional
 campaign can look almost identical to traffic from a flood attack in one month, and quite
 different from it the next. It is this second observation - the difficulty of telling a
-genuine surge apart from a malicious one, and doing so within microseconds - that shapes
+real surge apart from a malicious one, and doing so within microseconds - that shapes
 the specific research gap this chapter builds towards.
 
 ## 1.3 Problem Statement
 
-Network operators today face a genuine dilemma. The sooner a bad packet can be dropped,
+Network operators today face a real dilemma. The sooner a bad packet can be dropped,
 the less CPU time an attacker is able to steal from the system, because the packet never
 reaches the layers of the operating system that would otherwise have to process it. The
 eBPF/XDP subsystem of the Linux kernel is a strong answer to this half of the problem:
-verified, sandboxed programs are attached directly at the network driver hook, so packets
+verified, sandboxed programs are attached at the network driver hook itself, so packets
 can be classified and dropped before the kernel even allocates a full socket buffer
 structure for them. At the same time, the very features that make eBPF/XDP safe and fast
 - a small maximum instruction count, a limited per-program stack, and no unbounded loops
@@ -75,7 +75,7 @@ compiled around eBPF - decision-tree and quantised neural-network classifiers am
 - report strong accuracy figures, mostly above 95 percent, but these figures come from
 labelled attack datasets such as CIC-IDS-2017 and CICDDoS2019, and the models that are
 actually deployed stay static once trained. The single closest piece of work, a 2025
-framework that builds adaptive, dynamically-thresholded detection logic directly into
+framework that builds adaptive, dynamically-thresholded detection logic straight into
 OpenFlow switches, does solve the adaptivity problem, but only by recalculating a
 statistical threshold rather than adjusting a learned model, and it depends
 architecturally on an SDN controller, which limits how it could be used in a host-level,
@@ -102,7 +102,7 @@ This primary question is answered in several ways across the dissertation, and i
 into two sub-questions: what architecture is needed to let a userspace control process
 safely and efficiently update kernel-resident detection parameters without simply moving
 the problem back up into userspace, and what evaluation methodology is needed to show,
-with evidence, that adaptivity genuinely changes the trade-off between attack detection
+with evidence, that adaptivity actually changes the trade-off between attack detection
 and false-positive rate, rather than just shifting where that trade-off is made.
 
 ## 1.5 Research Motivation
@@ -196,9 +196,11 @@ consistently-suspicious source can influence how quickly the threshold reacts.
 
 A separate evaluation harness, conceptually apart from the running defence but central to
 the research contribution, replays both attack traffic - generated with hping3 - and
-synthetic flash-crowd traffic that mimics a genuine burst of legitimate connections from
+synthetic flash-crowd traffic that mimics a real burst of legitimate connections from
 many distinct sources, and logs the resulting detection accuracy and false-positive
 behaviour for each scenario.
+
+{{FIGURE_1_1}}
 
 ## 1.9 Resource Requirements
 

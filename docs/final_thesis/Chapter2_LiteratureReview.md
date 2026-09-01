@@ -63,7 +63,7 @@ but it introduces an idea reused in almost every later DDoS-specific paper: comb
 several monitoring tasks into a single eBPF program to avoid duplicating per-packet work,
 and only run more expensive userspace analysis once a cheap in-kernel filter has flagged
 something worth a closer look. This "filter cheaply, escalate selectively" idea is
-directly relevant to the two-tier architecture proposed in Chapter One, and in this
+closely relevant to the two-tier architecture proposed in Chapter One, and in this
 researcher's view it is an idea that most of the subsequent DDoS-specific papers have not
 picked up, since they mostly apply a single, generic detection mechanism uniformly to all
 traffic.
@@ -71,7 +71,7 @@ traffic.
 Tolay presents a rate-based XDP mitigation approach aimed specifically at
 resource-constrained IoT edge devices, tested against a 100 Mbps flood on a Raspberry Pi
 4 and reporting over 97 percent mitigation effectiveness. This is well suited to its
-stated environment, but it does not transfer directly to the present research, because
+stated environment, but it does not carry over neatly to the present research, because
 the published evaluation does not include a legitimate traffic-surge scenario, and it
 relies on a single, fixed-rate threshold, leaving the question of false positives
 completely open. A cloud-data-centre paper published at IEEE applies a similar
@@ -93,8 +93,8 @@ in the paper itself, and, like the systems above, the evaluation is carried out 
 against labelled attack data. Hara and Sasabe take this a step further, showing that a
 quantised integer-arithmetic neural network and a decision-tree classifier can both be
 compiled to run within the constraints the eBPF/XDP verifier imposes, using BPF tail
-calls to work around the instruction-count limit - a genuinely significant piece of
-engineering, and one that speaks directly to the design choices made in this
+calls to work around the instruction-count limit - a significant piece of
+engineering in its own right, and one that speaks to the design choices made in this
 dissertation's own prototype, discussed further in Section 1.8. The trade-off they
 describe, however, is not something that can be changed at runtime; it is a design-time
 choice between an in-kernel approach and an AF_XDP-offloaded userspace approach, not a
@@ -145,7 +145,7 @@ tell volume-driven legitimate traffic apart from a volume-driven attack.
 The second family, learned classification, covers comparatively simple decision trees,
 random forests, support vector machines, quantised neural networks, and convolutional or
 recurrent architectures. This family is well known to be more accurate, but that accuracy
-comes at a real cost inside the kernel: a decision tree compiles fairly directly into a
+comes at a real cost inside the kernel: a decision tree compiles fairly easily into a
 bounded sequence of branch comparisons, which is why it turns up in so many
 "fits-inside-the-verifier" papers, whereas a neural network needs the quantisation and
 tail-call workarounds that Hara and Sasabe had to engineer, precisely because the
@@ -173,7 +173,7 @@ here hard-codes its thresholds and model weights at compile time, with the excep
 Elzoghbi and He, who recalculate a purely statistical threshold; none of them combine a
 learned classifier with an update mechanism that runs in userspace and pushes changes
 back through BPF maps. This third dimension is exactly where the research gap sits, and
-it feeds directly into the userspace control-loop design described in Section 1.8.
+it feeds straight into the userspace control-loop design described in Section 1.8.
 
 ## 2.6 Reflection
 
@@ -188,5 +188,5 @@ learned, selectively-invoked classifier with a live, host-level, BPF-map-driven 
 mechanism, and none of them measure false positives against a deliberately generated
 traffic surge. This chapter therefore confirms, with the support of the literature
 reviewed here, the research gap set out in Section 1.3.2, and the methodology proposed in
-Chapter Three is aimed directly at closing it.
+Chapter Three is aimed squarely at closing it.
 </content>

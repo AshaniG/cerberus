@@ -14,11 +14,11 @@ implementation in Chapter Five was built against.
 ## 4.2 Stakeholder Analysis
 
 The **operator** is the person who would run the system in front of a real service. Their
-concern is straightforward but genuinely hard to satisfy at the same time: stop attacks,
+concern is straightforward but hard to satisfy at the same time: stop attacks,
 and do not stop paying customers. Everything about the adaptive threshold and the
 selective escalation tier exists because of this one stakeholder's conflicting needs.
 
-The **legitimate end user** never touches the system directly and is mostly unaware it
+The **legitimate end user** never touches the system themselves and is mostly unaware it
 exists, but is the stakeholder the flash-crowd evaluation in Chapter Six is really about.
 A defence that is only judged on how well it stops attackers has, in a sense, forgotten
 this stakeholder entirely, which is precisely the gap identified in Chapter Two.
@@ -41,7 +41,7 @@ instruments do this job. The CIC-IDS-2017 dataset operationalises the "analyse" 
 "design and develop" objectives for the machine-learning tier: its labelled benign and
 attack flows are what the decision tree is trained against and measured on, and its
 column set determined which features were realistically available to learn from. The
-generated attack and flash-crowd traffic, together with the counters read directly out of
+generated attack and flash-crowd traffic, together with the counters read straight out of
 the kernel maps, operationalises the "evaluate" objective - firing known, labelled
 traffic at the running system and recording what happens to it is what turns the research
 question into a number that can be compared across configurations.
@@ -50,9 +50,9 @@ One thing worth being upfront about here, because it shaped a real decision late
 implementation: reading results back through the dashboard's own API turned out to be an
 unreliable way to measure the system, since the dashboard's own polling traffic is itself
 subject to the same threshold it is trying to report on. Once this was noticed, the
-measurement approach was changed to read the BPF maps directly with bpftool, which cannot
+measurement approach was changed to read the BPF maps with bpftool instead, which cannot
 itself be affected by the filtering under test. This is discussed further in Chapter Six,
-but it is worth flagging here as it directly affected how the requirements below were
+but it is worth flagging here since it shaped how the requirements below were
 validated.
 
 ## 4.4 System / Model Analysis
@@ -64,17 +64,19 @@ threshold manually, enables or disables adaptive mode, and clears counters, all 
 the dashboard and its underlying API. The **Attacker** is an external actor whose packets
 enter the system and are acted upon, rather than someone who operates it. The **Traffic
 Generator** actor, used only for demonstration and evaluation, drives the "start attack"
-and "start flash crowd" use cases. Internally, and not triggered by any external actor
-directly, the system also filters packets, escalates ambiguous sources to the classifier,
+and "start flash crowd" use cases. Internally, without being triggered by any external
+actor, the system also filters packets, escalates ambiguous sources to the classifier,
 and adapts the threshold - each of these is best modelled as an internal use case
 included by the packet-arrival flow rather than something a human actor invokes.
+
+{{FIGURE_UC}}
 
 ### 4.4.2 Class Diagram
 
 The userspace side of the system is built around a small number of classes, each mapping
 onto one Python module, which keeps the design easy to reason about even though several
 of them run as independent background threads. `BpfSession` owns the attached XDP program
-and its maps, and is the only class that talks to the kernel directly - it exposes
+and its maps, and is the only class that talks to the kernel at all - it exposes
 methods to attach, detach, read totals, read the top talking sources, and get or set the
 threshold. `Collector` holds a reference to a `BpfSession`, runs on a one-second timer,
 and is responsible for persisting a snapshot to the database and for calling the
@@ -85,6 +87,8 @@ classifier is a small module that loads a trained decision tree once, on first u
 exposes a single `classify_flow` function. `DB` wraps both the local SQLite database and
 the optional MongoDB Atlas mirror behind one interface, and `API` sits above all of these,
 exposing them to the dashboard over HTTP.
+
+{{FIGURE_CLASS}}
 
 ### 4.4.3 Activity Diagram
 
@@ -102,6 +106,8 @@ independently in userspace on its own timer, periodically reads the maps, checks
 any source has moved into the ambiguous band, and, for any that have, hands that source
 off to the classifier.
 
+{{FIGURE_ACTIVITY}}
+
 ### 4.4.4 Sequence Diagrams
 
 Three sequences cover the system's main interactions. The **filtering sequence** shows a
@@ -114,6 +120,12 @@ either the operator issuing a manual threshold change through the API, or the co
 loop computing one on its own from the smoothed traffic rate, and in both cases ends with
 the new value being written into the `config` map, ready to be read by the very next
 packet.
+
+{{FIGURE_SEQ_FILTER}}
+
+{{FIGURE_SEQ_ESCALATE}}
+
+{{FIGURE_SEQ_ADAPT}}
 
 ### 4.4.5 Deployment Diagram
 
@@ -128,7 +140,7 @@ reaching the API over HTTP.
 The architecture is the two-tier design carried through the rest of this dissertation.
 Tier 1 is the XDP program: cheap, always-on, and running on every packet. Tier 2 is the
 decision tree: selective, running only on the minority of sources the first tier cannot
-confidently resolve either way. The two tiers never call each other directly - they are
+confidently resolve either way. The two tiers never call one another - they are
 joined only by three BPF maps, which hold the per-source counts, the live threshold, and
 the running totals. Around this core sit the collector and control loop, which read and
 write those maps from userspace on independent timers, the database layer, which keeps a

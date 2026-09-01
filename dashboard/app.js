@@ -230,3 +230,171 @@ $("btn-flash-stop").onclick = () =>
 
 refresh();
 setInterval(refresh, 1000);
+
+/* Command console — a browser version of cli/ddosctl.py */
+
+const consoleOut = $("console-output");
+const consoleIn = $("console-input");
+const consoleHistory = [];
+let consoleHistoryPos = -1;
+
+function printLine(html) {
+  const line = document.createElement("div");
+  line.innerHTML = html;
+  consoleOut.appendChild(line);
+  consoleOut.scrollTop = consoleOut.scrollHeight;
+}
+
+function fmtTs(ts) {
+  return ts ? new Date(ts * 1000).toLocaleString() : "-";
+}
+
+const HELP_TEXT =
+  "commands: status | top [n] | events [n] | attack | threshold &lt;n&gt; | clear | help | cls";
+
+async function runConsoleCommand(raw) {
+  const text = raw.trim();
+  if (!text) return;
+  printLine(`<span class="c-cmd">${text}</span>`);
+  consoleHistory.push(text);
+  consoleHistoryPos = consoleHistory.length;
+
+  const [cmd, ...rest] = text.split(/\s+/);
+
+  try {
+    switch (cmd) {
+      case "help":
+        printLine(`<span class="c-muted">${HELP_TEXT}</span>`);
+        break;
+
+      case "cls":
+        consoleOut.innerHTML = "";
+        break;
+
+      case "status": {
+        const s = await jget("/api/status");
+        const t = s.totals || {};
+        printLine(
+          `<span class="c-muted">threshold=${s.threshold} adaptive=${
+            s.adaptive && s.adaptive.enabled ? "on" : "off"
+          } seen=${t.seen ?? 0} dropped=${t.dropped ?? 0} passed=${t.passed ?? 0}</span>`
+        );
+        break;
+      }
+
+      case "top": {
+        const limit = Number(rest[0]) || 12;
+        const data = await jget(`/api/top?limit=${limit}`);
+        const rows = data.top || [];
+        if (!rows.length) {
+          printLine('<span class="c-muted">(no traffic recorded yet)</span>');
+          break;
+        }
+        rows.forEach((r) => {
+          const ip = r.ip || r.src_ip;
+          const action = r.action || "pass";
+          const cls = action === "drop" ? "c-bad" : "c-ok";
+          printLine(`<span class="c-muted">${ip}  count=${r.count}  action=</span><span class="${cls}">${action}</span>`);
+        });
+        break;
+      }
+
+      case "events": {
+        const limit = Number(rest[0]) || 15;
+        const data = await jget(`/api/events?limit=${limit}`);
+        const rows = data.events || [];
+        if (!rows.length) {
+          printLine('<span class="c-muted">(no events recorded yet)</span>');
+          break;
+        }
+        rows.forEach((e) => {
+          printLine(
+            `<span class="c-muted">${fmtTs(e.ts)}  ${e.type}  ${e.src_ip || "-"}  ${e.detail || ""}</span>`
+          );
+        });
+        break;
+      }
+
+      case "attack": {
+        const [series, top] = await Promise.all([
+          jget("/api/timeseries?limit=10"),
+          jget("/api/top?limit=30"),
+        ]);
+        const points = series.points || [];
+        if (points.length < 2) {
+          printLine('<span class="c-muted">Not enough data yet to judge.</span>');
+          break;
+        }
+        const first = points[0];
+        const last = points[points.length - 1];
+        const dTotal = (last.total_pkts ?? 0) - (first.total_pkts ?? 0);
+        const dDropped = (last.dropped ?? 0) - (first.dropped ?? 0);
+        const dropRate = dTotal > 0 ? (dDropped / dTotal) * 100 : 0;
+        const blocked = (top.top || []).filter((r) => r.action === "drop");
+        const isAttack = dropRate >= 5 || blocked.length > 0;
+        if (isAttack) {
+          printLine('<span class="c-bad">[!] ATTACK LIKELY</span>');
+        } else {
+          printLine('<span class="c-ok">[OK] No attack detected</span>');
+        }
+        printLine(
+          `<span class="c-muted">recent drop rate: ${dropRate.toFixed(1)}% (last ${points.length} samples)</span>`
+        );
+        blocked.forEach((r) => {
+          const ip = r.ip || r.src_ip;
+          printLine(`<span class="c-bad">  ${ip}  count=${r.count}</span>`);
+        });
+        break;
+      }
+
+      case "threshold": {
+        const value = Number(rest[0]);
+        if (!value) {
+          printLine('<span class="c-bad">usage: threshold &lt;number&gt;</span>');
+          break;
+        }
+        const res = await jpost("/api/threshold", { threshold: value });
+        printLine(`<span class="c-ok">OK</span><span class="c-muted"> ${JSON.stringify(res)}</span>`);
+        await refresh();
+        break;
+      }
+
+      case "clear": {
+        const res = await jpost("/api/clear", {});
+        printLine(`<span class="c-ok">OK</span><span class="c-muted"> ${JSON.stringify(res)}</span>`);
+        await refresh();
+        break;
+      }
+
+      default:
+        printLine(`<span class="c-bad">unknown command: ${cmd}</span> — ${HELP_TEXT}`);
+    }
+  } catch (err) {
+    printLine(`<span class="c-bad">error: ${err.message || err}</span>`);
+  }
+}
+
+printLine('<span class="c-muted">Cerberus command console — type "help" to see commands.</span>');
+
+consoleIn.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter") {
+    const val = consoleIn.value;
+    consoleIn.value = "";
+    runConsoleCommand(val);
+  } else if (ev.key === "ArrowUp") {
+    if (consoleHistoryPos > 0) {
+      consoleHistoryPos -= 1;
+      consoleIn.value = consoleHistory[consoleHistoryPos];
+    }
+    ev.preventDefault();
+  } else if (ev.key === "ArrowDown") {
+    if (consoleHistoryPos < consoleHistory.length - 1) {
+      consoleHistoryPos += 1;
+      consoleIn.value = consoleHistory[consoleHistoryPos];
+    } else {
+      consoleHistoryPos = consoleHistory.length;
+      consoleIn.value = "";
+    }
+    ev.preventDefault();
+  }
+});
