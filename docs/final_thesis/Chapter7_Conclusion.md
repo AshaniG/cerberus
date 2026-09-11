@@ -25,7 +25,7 @@ the central result of the whole dissertation - a static threshold that blocked t
 of twelve legitimate sources, against an adaptive threshold that blocked none, with both
 configurations catching the attacker fully.
 
-Taken together, and triangulating three independent strands of evidence - the functional
+Putting the three independent strands of evidence side by side - the functional
 tests confirming the mechanism works, the 0.86 accuracy of the classifier on a real
 benchmark dataset, and the flash-crowd comparison itself - the research question posed in
 Chapter One can be answered with a qualified yes: this design does maintain attack
@@ -129,6 +129,5 @@ published method as a second baseline, rather than only a static threshold, woul
 the system to be positioned quantitatively against the state of the art rather than only
 against a strawman. Beyond these, supporting IPv6 traffic and examining
 application-layer surges, both explicitly out of scope in Chapter One, would broaden the
-system considerably. Taken together, these steps mark a realistic path from a working,
+system considerably. Between them, these steps mark a realistic path from a working,
 evidenced prototype towards a result solid enough to submit for peer review.
-</content>

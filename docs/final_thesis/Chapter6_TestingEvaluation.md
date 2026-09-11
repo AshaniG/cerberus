@@ -106,7 +106,7 @@ than left for an examiner to find. First, the flash-crowd scenario was run on a 
 host, using distinct source addresses to represent twelve separate "users" rather than
 twelve actually separate physical machines; a multi-host setup, with the traffic
 generator kept on hardware separate from the system under test as specified in Section
-1.9.1, would strengthen the external validity of this result, and the architecture already
+1.10.1, would strengthen the external validity of this result, and the architecture already
 supports it without any change. Second, the adaptive-configuration column above used a
 representative fixed value standing in for the threshold the live control loop settles on
 during a surge, rather than letting the control loop choose that value for itself in the
@@ -141,4 +141,3 @@ design blocked none of twelve legitimate sources where a static threshold blocke
 twelve, with both catching the attacker. The limitations of the current single-host setup
 were stated openly. Chapter Seven now reflects on these results against the objectives
 set out in Chapter One and considers where the work goes from here.
-</content>

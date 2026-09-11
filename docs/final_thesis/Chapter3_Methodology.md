@@ -64,7 +64,7 @@ by hand.
 | 3.5.2 Relevance Justification | Addressed through Cloudflare and industry threat-report statistics demonstrating the scale and urgency of the DDoS problem, and through the literature gap established in Section 2.6. |
 | 3.5.3 Comparative Analysis and Gap Justification | Addressed through the seven-system comparative review in Section 2.4 and the cross-cutting technological analysis in Section 2.5, concluding in the explicit gap statement of Section 2.6. |
 | 3.5.4 Define and Finalise Objectives | Addressed through the four research objectives in Section 1.7, each traceable to a specific element of the identified gap. |
-| 3.5.5 Design, Development, and Data Management | Addressed through the two-tier architecture and userspace control-loop design in Section 1.8, implemented using the toolchain in Section 1.9, with experimental data version-controlled alongside the source-code repository for traceability. |
+| 3.5.5 Design, Development, and Data Management | Addressed through the two-tier architecture and userspace control-loop design in Section 1.9, implemented using the toolchain in Section 1.10, with experimental data version-controlled alongside the source-code repository for traceability. |
 | 3.5.6 Evaluation and Communication | Addressed through the controlled experimental comparison described in Section 3.3, with results reported quantitatively against static baselines and communicated through the dissertation's results and discussion chapters. |
 
 *Table 3.1: Research methodology execution workflow*

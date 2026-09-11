@@ -141,4 +141,3 @@ The three specifications below expand on the use cases summarised in Section 4.4
 | Precondition | A target address is configured; the generator script is available on the host |
 | Main flow | The operator specifies a target and rate; the API launches the attack-generation process; generated traffic reaches the XDP hook and is counted and, once over threshold, dropped, exactly as any other traffic would be |
 | Postcondition | The dashboard reflects the resulting rise in seen and dropped packets, and the attacking source appears in the top-sources list marked as dropped |
-</content>

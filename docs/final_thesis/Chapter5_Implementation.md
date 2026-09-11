@@ -243,4 +243,3 @@ confirmed live threshold change, a genuine measurement pitfall that was found an
 around, and a classifier trained on 702,718 real samples - that the system does what
 Chapter Four specified. Chapter Six now turns to testing this system formally and
 evaluating it against the research question.
-</content>

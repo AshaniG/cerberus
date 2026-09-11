@@ -185,4 +185,3 @@ the system through use case, class, activity, sequence, and deployment views, se
 two-tier architecture with the BPF maps as the single bridge between its halves, and
 closed with the functional and non-functional requirements the implementation was built
 to satisfy. Chapter Five now describes how that implementation was actually carried out.
-</content>

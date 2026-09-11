@@ -44,4 +44,3 @@ Architectures for Parallel Processing, ICA3PP 2025, LNCS vol. 16387, Springer, 2
 
 13. T. Farasat, J. Kim, and J. Posegga, "SmartX Intelligent Sec: A Security Framework
 Based on Machine Learning and eBPF/XDP," arXiv:2410.20244, 2024.
-</content>

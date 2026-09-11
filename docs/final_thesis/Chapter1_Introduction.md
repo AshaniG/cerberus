@@ -5,9 +5,10 @@
 This chapter sets out the research carried out on kernel-level DDoS detection using eBPF
 and XDP. It gives the background that motivates the study, states the problem in general
 and specific terms, and identifies the research question along with the motivation, aim,
-and objectives that guide the rest of the work. The chapter also sketches the proposed
-solution, lists the resources it needs, and marks out the boundary of what the project
-does and does not attempt.
+and objectives that guide the rest of the work. It then states the three contributions
+that together make up the novelty of this dissertation, before sketching the proposed
+solution, listing the resources it needs, and marking out the boundary of what the
+project does and does not attempt.
 
 ## 1.2 Problem Background - What Has Actually Happened?
 
@@ -51,7 +52,7 @@ tries to correct.
 
 ### 1.3.1 General Problem
 
-In essence, this paradox forces organisations to choose between speed and intelligence.
+This paradox forces organisations to choose between speed and intelligence.
 Static, threshold-based filters compiled into XDP - for example, dropping any source IP
 whose packet rate crosses a fixed number - are cheap enough to run on every packet, but
 cannot tell a real traffic surge (a flash sale, a viral post, a major sporting result)
@@ -81,15 +82,29 @@ statistical threshold rather than adjusting a learned model, and it depends
 architecturally on an SDN controller, which limits how it could be used in a host-level,
 controller-independent deployment.
 
-None of these features is individually well supported by published work, and the
-combination of all three appears nowhere: (a) a lightweight, two-tier detection pipeline
-in which only ambiguous traffic is escalated from a cheap statistical pre-filter to a
-small machine-learning classifier; (b) an online mechanism by which a userspace control
-loop can adjust the escalation threshold that governs when traffic reaches that
-classifier, without recompiling or reloading the XDP program; and (c) an evaluation
-methodology that explicitly measures false positives against legitimate flash-crowd
-traffic, rather than against attack traffic alone. The gap this dissertation targets in
-the research literature is that combination.
+Looked at one at a time, the studies above each cover at most one of these three ideas,
+and even then only in part. Abranches et al. show that a cheap in-kernel filter can hand
+the harder work to a more expensive check, but they do this for general network
+monitoring, not for DDoS detection. None of the DDoS-specific systems reviewed - Anand et
+al., Hara and Sasabe, Farasat et al., or Zheng and Zhang - pick that idea up; each runs
+its classifier over all traffic rather than saving it for the sources the first tier
+cannot already sort out. On the second idea, adaptivity, Elzoghbi and He come closest,
+because they recalculate their threshold while the system runs. But that threshold is a
+statistical recalculation, not the escalation boundary of a learned model, and their
+design needs an SDN controller and OpenFlow switches instead of a plain Linux host. Hara
+and Sasabe, for their part, describe a choice made at design time between running the
+classifier in the kernel or in userspace, not a decision the system makes for itself
+while it is running. The third idea, the evaluation method, is where the gap is clearest.
+Tolay openly leaves the question of false positives unanswered, the cloud and container
+systems report no flash-crowd test at all, and even the highest accuracy figures in the
+reviewed papers - Anand et al.'s 99.44 percent, Farasat et al.'s filtering of 2.2 million
+packets in live testing - come only from labelled attack data, never from a legitimate
+surge generated on purpose. So parts of the problem have been solved on their own, but no
+single paper reviewed here puts all three together: a two-tier pipeline that escalates
+only ambiguous traffic, a threshold that can be changed at runtime without reloading the
+XDP program, and an evaluation that measures false positives against a legitimate flash
+crowd rather than against attack traffic alone. That combination is what this dissertation
+sets out to build and test.
 
 ## 1.4 Research Question
 
@@ -160,7 +175,50 @@ deliberately generated legitimate flash-crowd traffic, measuring detection accur
 false-positive rate, throughput, and CPU overhead, and to compare the results against a
 static-threshold baseline.
 
-## 1.8 Rich Picture of the Proposed Solution
+## 1.8 Research Contributions and Novelty
+
+As Section 1.3.2 explained, the gap is not that any single one of these ideas is missing
+from the literature. It is that no system brings all three together. This dissertation
+makes three contributions, and its novelty is in combining them in one system that runs
+on an ordinary Linux host.
+
+**Contribution 1 - An adaptive detection threshold that is updated live, without
+reloading the XDP program.** A userspace control loop keeps track of the recent traffic
+rate and writes an updated threshold into a shared BPF map. The kernel program reads that
+value on the next packet it handles. Because the threshold sits in a map instead of being
+compiled into the program, it can be changed while the system is still running and still
+filtering traffic, with no recompilation and no reload of the XDP hook. This is the thing
+the static systems in Chapter Two cannot do, since their threshold is fixed once the
+program is loaded. The closest existing work, by Elzoghbi and He, does adjust its
+threshold while running, but it needs an SDN controller and OpenFlow switches to do so;
+the system here needs neither.
+
+**Contribution 2 - A two-tier pipeline that escalates only ambiguous traffic to a
+machine-learning classifier.** The cheap statistical filter at the XDP hook runs on every
+packet. The decision-tree classifier does not. It is called only for the small group of
+sources that the first tier cannot clearly label as either normal or hostile. This keeps
+the heavier classification work off the per-packet path, and spends it only where it
+might change the outcome. None of the DDoS-specific systems reviewed in Chapter Two use
+their classifier this way; each one runs its model over all traffic instead.
+
+**Contribution 3 - An evaluation that measures false positives against legitimate
+flash-crowd traffic, not against attack traffic alone.** As well as generating synthetic
+attack traffic, the evaluation generates a sudden burst of legitimate traffic - a flash
+crowd - and counts how many real users the system wrongly blocks under a fixed threshold
+compared with the adaptive one. This is the weakness that shows up most often in the
+reviewed work, where even the systems with the highest reported accuracy are only ever
+tested against labelled attack data. It is also the part of the evaluation that the main
+claim of this dissertation depends on, and it is set out in full in Chapter Six.
+
+The three contributions are not separate features bolted together. The selective two-tier
+design (Contribution 2) is what makes it affordable to run a machine-learning tier on the
+host at all. The live threshold (Contribution 1) is what lets that pipeline adjust itself
+while it runs, instead of being tuned once and then left alone. The flash-crowd
+evaluation (Contribution 3) is what shows the adaptivity actually improves the balance
+between blocking attackers and letting real users through, rather than just moving the
+problem somewhere else.
+
+## 1.9 Rich Picture of the Proposed Solution
 
 The proposed architecture can be thought of as two co-operating parts that sit either
 side of the kernel/userspace boundary. The XDP program is attached to the network
@@ -202,21 +260,25 @@ behaviour for each scenario.
 
 {{FIGURE_1_1}}
 
-## 1.9 Resource Requirements
+## 1.10 Resource Requirements
 
-### 1.9.1 Hardware
+### 1.10.1 Hardware
 
-- A Linux test server, either a physical machine or a cloud VM with kernel-level access,
-running a minimum kernel version of 5.10 for stable support of the required BPF map types
-and XDP hooks.
-- A second machine, or a separate set of cloud instances, to act as the traffic generator
-for attack and flash-crowd test traffic, kept physically or logically separate from the
-system under test so that the generator's own CPU load does not contaminate the
-measurements taken on the host being defended.
-- Where available, a network interface card known to support native XDP mode rather than
-the slower generic/SKB mode, for accurate throughput figures.
+- A Linux host with kernel-level access, either a physical machine or a virtual machine,
+running a kernel of at least version 5.10 so that the BPF map types and XDP hooks the
+system depends on are stably supported. The prototype was developed and tested on a host
+running kernel version 7.0.0.
+- A source of test traffic. The project supplies its own generator scripts for this -
+attack_gen.py for attack traffic and flashcrowd_gen.py for legitimate flash-crowd traffic
+- so that no separate commercial tool is needed. Running these generators on a second
+machine, kept separate from the host being defended, is the recommended setup where one is
+available, so that the generator's own CPU load does not affect the measurements taken on
+the host. The evaluation in Chapter Six was run on a single host, which is noted there as a
+limitation of the test setup.
+- Where available, a network interface card that supports native XDP mode rather than the
+slower generic/SKB fallback, for more accurate throughput figures.
 
-### 1.9.2 Software
+### 1.10.2 Software
 
 - Headers and libraries for compiling and loading eBPF/XDP programs on the Linux kernel,
 via the BCC toolchain.
@@ -231,7 +293,7 @@ with a purpose-built Python generator for legitimate flash-crowd traffic.
 - Standard Python data-analysis tooling - pandas, scikit-learn, and matplotlib - for
 offline model training and result analysis.
 
-## 1.10 Project Scope
+## 1.11 Project Scope
 
 **In Scope**
 
@@ -254,7 +316,7 @@ proposed system is intentionally host-level and controller-independent.
 - Production-grade deployment, large-scale load testing beyond the available
 infrastructure, or commercial packaging of the prototype.
 
-## 1.11 Chapter Summary
+## 1.12 Chapter Summary
 
 This chapter placed the dissertation in the context of the rapid growth in the volume and
 sophistication of DDoS attacks, and used that context to motivate a precise problem
@@ -262,8 +324,9 @@ statement: existing eBPF/XDP detection systems are either fast but static, or ac
 but frozen once deployed, and none of the reviewed literature tests how these systems
 behave when faced with a legitimate traffic surge. A single research question, a
 supporting aim, and four research-specific objectives were drawn from this problem
-statement, alongside a description of the proposed two-tier, online-adaptive solution,
-the resources it requires, and a clear boundary of what the project will and will not
-attempt. Chapter Two now turns to a detailed review of the literature that this problem
-statement is built on.
-</content>
+statement, and the three contributions that together make up the novelty of this work -
+the live-updatable threshold, the selective two-tier pipeline, and the flash-crowd
+false-positive evaluation - were stated explicitly, alongside a description of the
+proposed two-tier, online-adaptive solution, the resources it requires, and a clear
+boundary of what the project will and will not attempt. Chapter Two now turns to a
+detailed review of the literature that this problem statement is built on.

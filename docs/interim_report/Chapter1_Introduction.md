@@ -81,15 +81,29 @@ statistical threshold rather than adjusting a learned model, and it depends
 architecturally on an SDN controller, which limits how it could be used in a host-level,
 controller-independent deployment.
 
-None of these features is individually well supported by published work, and the
-combination of all three appears nowhere: (a) a lightweight, two-tier detection pipeline
-in which only ambiguous traffic is escalated from a cheap statistical pre-filter to a
-small machine-learning classifier; (b) an online mechanism by which a userspace control
-loop can adjust the escalation threshold that governs when traffic reaches that
-classifier, without recompiling or reloading the XDP program; and (c) an evaluation
-methodology that explicitly measures false positives against legitimate flash-crowd
-traffic, rather than against attack traffic alone. The gap this dissertation targets in
-the research literature is that combination.
+Looked at one at a time, the studies above each cover at most one of these three ideas,
+and even then only in part. Abranches et al. show that a cheap in-kernel filter can hand
+the harder work to a more expensive check, but they do this for general network
+monitoring, not for DDoS detection. None of the DDoS-specific systems reviewed - Anand et
+al., Hara and Sasabe, Farasat et al., or Zheng and Zhang - pick that idea up; each runs
+its classifier over all traffic rather than saving it for the sources the first tier
+cannot already sort out. On the second idea, adaptivity, Elzoghbi and He come closest,
+because they recalculate their threshold while the system runs. But that threshold is a
+statistical recalculation, not the escalation boundary of a learned model, and their
+design needs an SDN controller and OpenFlow switches instead of a plain Linux host. Hara
+and Sasabe, for their part, describe a choice made at design time between running the
+classifier in the kernel or in userspace, not a decision the system makes for itself
+while it is running. The third idea, the evaluation method, is where the gap is clearest.
+Tolay openly leaves the question of false positives unanswered, the cloud and container
+systems report no flash-crowd test at all, and even the highest accuracy figures in the
+reviewed papers - Anand et al.'s 99.44 percent, Farasat et al.'s filtering of 2.2 million
+packets in live testing - come only from labelled attack data, never from a legitimate
+surge generated on purpose. So parts of the problem have been solved on their own, but no
+single paper reviewed here puts all three together: a two-tier pipeline that escalates
+only ambiguous traffic, a threshold that can be changed at runtime without reloading the
+XDP program, and an evaluation that measures false positives against a legitimate flash
+crowd rather than against attack traffic alone. That combination is what this dissertation
+sets out to build and test.
 
 ## 1.4 Research Question
 
@@ -204,15 +218,16 @@ behaviour for each scenario.
 
 ### 1.9.1 Hardware
 
-- A Linux test server, either a physical machine or a cloud VM with kernel-level access,
-running a minimum kernel version of 5.10 for stable support of the required BPF map types
-and XDP hooks.
-- A second machine, or a separate set of cloud instances, to act as the traffic generator
-for attack and flash-crowd test traffic, kept physically or logically separate from the
-system under test so that the generator's own CPU load does not contaminate the
-measurements taken on the host being defended.
-- Where available, a network interface card known to support native XDP mode rather than
-the slower generic/SKB mode, for accurate throughput figures.
+- A Linux host with kernel-level access, either a physical machine or a virtual machine,
+running a kernel of at least version 5.10 so that the BPF map types and XDP hooks the
+system depends on are stably supported.
+- A source of test traffic. The project supplies its own generator scripts for this -
+attack_gen.py for attack traffic and flashcrowd_gen.py for legitimate flash-crowd traffic
+- so that no separate commercial tool is needed. Where a second machine is available,
+running these generators on it, kept separate from the host being defended, is the
+recommended setup, so that the generator's own CPU load does not affect the measurements.
+- Where available, a network interface card that supports native XDP mode rather than the
+slower generic/SKB fallback, for more accurate throughput figures.
 
 ### 1.9.2 Software
 

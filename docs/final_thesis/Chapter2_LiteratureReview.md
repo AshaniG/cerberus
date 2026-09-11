@@ -95,7 +95,7 @@ quantised integer-arithmetic neural network and a decision-tree classifier can b
 compiled to run within the constraints the eBPF/XDP verifier imposes, using BPF tail
 calls to work around the instruction-count limit - a significant piece of
 engineering in its own right, and one that speaks to the design choices made in this
-dissertation's own prototype, discussed further in Section 1.8. The trade-off they
+dissertation's own prototype, discussed further in Section 1.9. The trade-off they
 describe, however, is not something that can be changed at runtime; it is a design-time
 choice between an in-kernel approach and an AF_XDP-offloaded userspace approach, not a
 live decision the system makes for itself.
@@ -173,7 +173,7 @@ here hard-codes its thresholds and model weights at compile time, with the excep
 Elzoghbi and He, who recalculate a purely statistical threshold; none of them combine a
 learned classifier with an update mechanism that runs in userspace and pushes changes
 back through BPF maps. This third dimension is exactly where the research gap sits, and
-it feeds straight into the userspace control-loop design described in Section 1.8.
+it feeds straight into the userspace control-loop design described in Section 1.9.
 
 ## 2.6 Reflection
 
@@ -189,4 +189,3 @@ mechanism, and none of them measure false positives against a deliberately gener
 traffic surge. This chapter therefore confirms, with the support of the literature
 reviewed here, the research gap set out in Section 1.3.2, and the methodology proposed in
 Chapter Three is aimed squarely at closing it.
-</content>
