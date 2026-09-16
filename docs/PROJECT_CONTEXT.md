@@ -100,8 +100,8 @@ irrelevant there.** This is the standard architecture for the whole field
 | Userspace (cold path): collector, CLI, control loop | **Python 3** | Simple, standard, speed irrelevant off the packet path. |
 | Tier-2 ML classifier | **scikit-learn decision tree**, trained offline | A decision tree compiles to a bounded sequence of comparisons — verifier-friendly and trivially fast to evaluate on the small ambiguous slice. NOT a neural network (verifier constraints; see §6). |
 | Training dataset | **CIC-IDS-2017** | Already benchmarked in this project's literature review (Anand et al.). |
-| Storage | **SQLite** | Simple, file-based, no server. Chosen over InfluxDB for simplicity. |
-| Dashboard | **Plain HTML + Chart.js** | Simple, no build step. Chosen over React for simplicity. |
+| Storage | **SQLite** (source of truth) + optional **MongoDB Atlas** mirror | SQLite stays offline/reproducible for exams and M6 eval. Atlas optionally mirrors events for a cloud-style supervisor demo — never required on the packet path. |
+| Dashboard | **FastAPI** + polished **HTML/CSS/JS + Chart.js** | Real REST API + ops console, no React build step. Chosen over a SPA so the demo stays finishable. |
 | Attack traffic generator | **hping3** | Standard tool for SYN floods etc. |
 | Flash-crowd (legit surge) generator | **simple Python / standard load generator** | Produces the legitimate surge needed for the false-positive evaluation. |
 

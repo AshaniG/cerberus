@@ -64,10 +64,10 @@ Never write a large untested pile of code — build and verify one milestone at 
 | M0 | Hello eBPF: attach at XDP, pass all packets (do first, day one — collapses setup risk) | `kernel/hello_xdp.c`, `loader/hello_loader.py` |
 | M1 | Global packet counter in a BPF map, read from Python | `kernel/count_all.c`, `loader/count_loader.py` |
 | M2 | Per-source-IP count + `XDP_DROP` over threshold (Tier 1 core) | `kernel/xdp_ddos.c`, `loader/ddos_loader.py` |
-| M3 | Collector → SQLite, `ddosctl` CLI, HTML+Chart.js dashboard | `backend/{collector,db}.py`, `cli/ddosctl.py`, `dashboard/` |
+| M3 | Collector → SQLite, FastAPI + dashboard, `ddosctl` CLI | `backend/{serve,api,bpf_session,collector,db,mongo}.py`, `cli/ddosctl.py`, `dashboard/` |
 | M4 | Adaptive threshold control loop (novelty 1) | `backend/control_loop.py` |
 | M5 | Decision tree trained on CIC-IDS-2017, scores ambiguous slice (novelty 2) | `ml/`, `requirements.txt`, `data/cic-ids-2017/` |
-| M6 | Attack + flash-crowd traffic, measure, compare vs static baseline (novelty 3) | `attack/`, `eval/` |
+| M6 | Attack + flash-crowd traffic, measure, compare vs static baseline (novelty 3) | `attack/`, `eval/`, `docs/SUPERVISOR_DEMO.md` |
 
 ## Commands & environment
 
@@ -78,11 +78,13 @@ the current dev machine holds the repo but the code runs on the Ubuntu host.
 - **Loading an eBPF program requires root** — loaders run as `sudo python3 loader/<x>.py`.
   BCC compiles the `.c` on the machine at load time (no separate build step), which is
   why kernel headers must match the running kernel.
-- **Two Python environments, deliberately separate:**
-  - BCC uses the **system Python** (`python3-bpfcc` is installed system-wide) — the
-    loaders and anything importing `from bcc import BPF` run under system Python, not a venv.
-  - The **ML/analysis side** (`scikit-learn`, `pandas`, `numpy`, `joblib`) runs in a
-    project **venv**. Keep these worlds apart.
+- **Two Python environments, deliberately separate — with one exception for the demo stack:**
+  - BCC uses the **system Python** (`python3-bpfcc`) — loaders and `backend/serve.py`
+    (which imports BCC) run under system Python with `sudo`.
+  - Install API/ML deps for that same interpreter: `sudo pip3 install -r requirements.txt`
+    so `serve.py` can import FastAPI + sklearn without a venv fight.
+  - A project **venv** is still fine for offline `ml/train_tree.py` / `eval/` on a laptop.
+- **Full stack:** `sudo python3 backend/serve.py <iface> --port 8080`
 - **Verify the toolchain:** `python3 -c "from bcc import BPF; print('BCC OK')"`
 - **Inspect loaded programs/maps:** `sudo bpftool prog show`, `sudo bpftool map show`
 - **Find the interface to attach XDP to:** `ip link show` (prefer a wired interface;
@@ -101,6 +103,9 @@ the current dev machine holds the repo but the code runs on the Ubuntu host.
   the *architecture*, not model size.
 - **Comment generously and explain *why*.** The author has near-zero prior programming
   experience. Prefer clear over clever; this preference already drove tooling choices
-  (SQLite over InfluxDB, plain HTML/Chart.js over React, BCC over libbpf/Go).
-- **`data/`, `*.db`, and model binaries (`ml/model/*.joblib`) are gitignored** — large
-  datasets and constantly-changing state do not belong in version control.
+  (SQLite over InfluxDB, FastAPI+HTML/Chart.js over React, BCC over libbpf/Go;
+  optional MongoDB Atlas mirror for demos only).
+- **`data/`, `*.db`, `.env`, and model binaries (`ml/model/*.joblib`) are gitignored** — large
+  datasets, secrets, and constantly-changing state do not belong in version control.
+- **Full stack entrypoint:** `sudo python3 backend/serve.py <iface>` (XDP + collector +
+  adaptive control + FastAPI dashboard). Standalone milestone loaders remain under `loader/`.

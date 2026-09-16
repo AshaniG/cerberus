@@ -1,8 +1,12 @@
 # Data and databases
 data/cic-ids-2017/
 data/*.db
+data/runtime_status.json
 *.db
 *.sqlite
+
+# Secrets
+.env
 
 # Trained model binaries
 ml/model/*.joblib

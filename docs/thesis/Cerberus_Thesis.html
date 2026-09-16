@@ -1,0 +1,1497 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<style>
+@page { size: A4; margin: 2.2cm 2cm; }
+body { font-family: Georgia,'Times New Roman',serif; font-size: 11.5pt; line-height: 1.5;
+       color:#111; text-align: justify; }
+h1 { font-size: 20pt; border-bottom: 2px solid #333; padding-bottom:4px; }
+h2 { font-size: 15pt; margin-top: 18px; color:#1a1a1a; }
+h3 { font-size: 12.5pt; margin-top: 14px; color:#222; }
+p { margin: 8px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10.5pt; }
+th, td { border: 1px solid #999; padding: 5px 8px; text-align: left; vertical-align: top; }
+th { background: #eee; }
+code { font-family: 'DejaVu Sans Mono',monospace; font-size: 9.5pt; background:#f4f4f4;
+       padding:1px 3px; }
+pre { background:#f6f6f6; border:1px solid #ddd; padding:8px 10px; font-size:9pt;
+      white-space: pre-wrap; word-wrap: break-word; }
+pre code { background: none; }
+blockquote { background:#fff9e6; border-left:4px solid #e0b400; margin:10px 0;
+             padding:8px 12px; font-size:10pt; color:#5a4a00; }
+.chapter { page-break-before: always; }
+.title-page { text-align:center; page-break-after: always; }
+.title-page h1 { border:none; font-size:24pt; margin-top:26%; }
+.title-page .sub { font-size:13pt; color:#333; margin-top:10px; }
+.title-page .meta { margin-top:40px; font-size:12pt; line-height:1.8; }
+.title-page .note { margin-top:60px; font-size:10pt; color:#b00; }
+.toc { page-break-after: always; }
+.toc h2 { border-bottom:1px solid #ccc; }
+.toc ol, .toc ul { font-size:12pt; line-height:2; }
+</style></head><body>
+
+<div class="title-page">
+  <h1>Cerberus</h1>
+  <div class="sub">A Two-Tier, Adaptive, Kernel-Level DDoS Mitigation System with<br/>
+  Flash-Crowd False-Positive Evaluation using eBPF/XDP</div>
+  <div class="meta">
+    <div><strong>[Your Full Name]</strong></div>
+    <div>[Your Student ID]</div>
+    <div>[Degree Programme — e.g., BSc (Hons) Computer Networks]</div>
+    <div>[University / Institution]</div>
+    <div>Supervisor: [Supervisor Name]</div>
+    <div>[Month, Year]</div>
+  </div>
+  <div class="note">DRAFT — replace bracketed details, insert real citations, figures, and
+  diagrams, and remove the yellow author notes before submission.</div>
+</div>
+
+
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol><li>Chapter 1 — Introduction</li>
+<li>Chapter 2 — Literature Review</li>
+<li>Chapter 3 — Methodology</li>
+<li>Chapter 4 — System Requirement Specification</li>
+<li>Chapter 5 — Implementation</li>
+<li>Chapter 6 — Testing and Evaluation</li>
+<li>Chapter 7 — Concluding Remarks</li></ol>
+  <p style="font-size:10pt;color:#666;">(Regenerate a page-numbered table of contents in your
+  word processor for the final version.)</p>
+</div>
+
+<section class="chapter"><h1>Chapter 1 — Introduction</h1>
+<blockquote>
+<p><strong>How to use this draft.</strong> Every paragraph is based on the system you actually built
+(Cerberus). Read each one, make sure you can explain it in your own words, and replace
+every <strong>[INSERT REAL SOURCE / STAT]</strong> marker with a genuine, verified reference before
+you submit. Do not submit any statistic or citation you have not personally checked.</p>
+</blockquote>
+<h2>1.1 Chapter Overview</h2>
+<p>This chapter introduces the research and explains why it was undertaken. It opens by
+describing what has been happening with distributed denial-of-service (DDoS) attacks and
+why, despite years of attention, they remain one of the most persistent threats to online
+services. From that broad picture the chapter narrows towards a specific and often
+overlooked weakness in the way current defences behave: their difficulty in telling a
+genuine attack apart from a sudden but entirely legitimate surge of real users, a situation
+usually described as a flash crowd. Having established the problem, the chapter presents a
+focused problem statement supported by recent evidence, separates the general implications
+of the problem from the specific shortcomings within the technical domain of this work, and
+closes that discussion by naming the research gap to be filled. It then sets out a single
+research question, the motivation that led to the study, the aim of the work, and a set of
+research-specific objectives. A rich picture of the proposed solution is given so that the
+reader can see how the parts of the system cooperate before any technical detail is
+introduced, and this is followed by the hardware and software resources used, a clear
+statement of what the project does and does not attempt, and a short summary linking the
+chapter to the rest of the dissertation.</p>
+<h2>1.2 Problem Background — what has actually happened</h2>
+<p>Almost every service that individuals and organisations depend on today is reachable over
+the Internet. Banking, government portals, online retail, streaming, healthcare booking,
+and education all assume constant availability, and that assumption is exactly what makes
+availability such an attractive target. A distributed denial-of-service attack does not
+attempt to steal data or gain control of a machine; its single goal is to make a service
+unavailable to the people who legitimately want to use it. It achieves this by consuming
+some finite resource — network bandwidth, connection state, CPU cycles, or memory — faster
+than the victim can replenish it, until genuine requests can no longer be served.</p>
+<p>What makes these attacks so difficult to counter is their distributed nature. Rather than
+originating from a single, easily blocked source, the traffic is spread across a large
+number of compromised machines, often ordinary home devices and, increasingly, poorly
+secured Internet-of-Things hardware that has been recruited into a botnet. Because the
+requests come from many places at once and each individual packet may be perfectly
+well-formed, the defender cannot simply look for malformed data or a single bad address.
+The challenge is not recognising an obviously broken packet but recognising an abnormal
+<em>pattern</em> assembled from otherwise ordinary traffic.</p>
+<p>Over recent years the problem has grown rather than receded. Industry threat reports
+describe a steady rise in both the frequency of attacks and the peak volumes they reach,
+with record-setting volumetric floods now measured in terabits per second and short,
+high-intensity bursts becoming more common <strong>[INSERT REAL STAT — e.g., the most recent
+Cloudflare DDoS Threat Report or NETSCOUT Threat Intelligence Report; quote the specific
+figure and its year]</strong>. Two developments in particular have worsened the situation. The
+first is accessibility: attack tools and even rentable "booter" or "stresser" services have
+made launching a sizeable attack cheap and technically undemanding, lowering the barrier to
+entry dramatically. The second is architectural: many established defences operate at a
+distance from the machine being protected — in a dedicated scrubbing appliance, at the
+network edge, or through a software-defined-networking controller — and while such placement
+can bring considerable analytical power to bear, it also introduces delay, because each
+packet or flow must travel to the decision point and a verdict must travel back before any
+action is taken. Against short bursts, that round trip can be the difference between
+absorbing an attack and being overwhelmed by it.</p>
+<p>Running alongside the attack problem is a second phenomenon that looks almost identical from
+the outside but is entirely benign: the flash crowd. A flash crowd is a sudden, sharp rise
+in traffic produced by real users rather than by an adversary. Familiar examples include the
+moment concert tickets are released, the opening of a major online sale, a breaking news
+story that drives readers to a publisher, or the deadline of a public examination portal. In
+each case a very large number of genuine visitors arrive within a short window. To a defence
+that reasons only about volume, this legitimate surge is indistinguishable from a volumetric
+attack, and a defence tuned aggressively enough to stop attacks may therefore block precisely
+the users the service most wants to welcome. This tension — between reacting quickly enough
+to stop a real attack and restraining that reaction enough to spare a legitimate crowd — is
+the core difficulty that motivates the present research.</p>
+<h2>1.3 Problem Statement</h2>
+<p>Modern DDoS defences are forced into a trade-off that they handle poorly, and the cost of
+handling it badly falls squarely on legitimate users. Recent studies continue to report both
+rising attack volumes and a shift towards shorter, sharper bursts that leave defenders very
+little time to react <strong>[INSERT RECENT CITATION — a peer-reviewed source within the last five
+years]</strong>. Two properties of any decision therefore matter simultaneously: how <em>quickly</em> it is
+made, because a slow decision cannot protect against a fast burst; and how <em>accurately</em> it
+distinguishes attack traffic from a legitimate surge, because an inaccurate decision harms the
+very users the service exists to serve. Most existing approaches optimise one of these
+properties at the expense of the other, and almost none are evaluated on the second at all.</p>
+<h3>1.3.1 General Problem</h3>
+<p>At the most general level, the problem is that a defence is expected to be both fast and
+discriminating, yet these two demands pull in opposite directions. A defence placed at the
+earliest and fastest point in the system can discard bad traffic before any effort is wasted
+on it, but at that point only very cheap logic can run, and cheap logic — typically a simple
+volume threshold — cannot tell an attack from a legitimate surge. A defence that reasons more
+carefully, for instance by applying machine learning to rich traffic features, can make far
+finer distinctions, but such reasoning is usually positioned later in the path and applied to
+all traffic, which makes it too slow to protect the system in real time. The high-level
+implication is uncomfortable: organisations are pushed towards one of two failure modes.
+Either they under-protect, accepting the risk of outages and the reputational and financial
+damage that accompany them, or they over-block, turning away paying customers and legitimate
+users during exactly the high-demand moments a business most wants to capture. Both outcomes
+carry a real cost, and the second is frequently invisible because it is rarely measured.</p>
+<h3>1.3.2 Specific Problem</h3>
+<p>Within the specific domain that this research occupies — kernel-level packet filtering using
+the extended Berkeley Packet Filter (eBPF) and the eXpress Data Path (XDP) — the shortcoming
+becomes concrete and technical. An eBPF program attached at the XDP hook runs as verified
+bytecode at the earliest programmable point in the Linux networking path, immediately after
+the network driver and before the conventional networking stack. This position is what gives
+in-kernel filtering its remarkable speed, because a packet can be dropped before the kernel
+invests any further processing in it. The same environment, however, is deliberately
+constrained: the eBPF verifier statically checks every program before it is allowed to load
+and rejects anything containing unbounded loops or exceeding its instruction limits, precisely
+so that a faulty program cannot destabilise the kernel. The practical consequence is that only
+cheap, bounded computation is permitted on this fast path.</p>
+<p>Because of that constraint, published XDP-based DDoS filters rely on coarse, volume-oriented
+rules, most commonly a per-source packet-rate or packet-count threshold. Such a rule is fast
+and predictable, but it carries no information about the intent behind the traffic. A threshold
+set low enough to stop an attack will therefore also drop a legitimate flash crowd, while a
+threshold set high enough to admit a flash crowd will let a moderate attack through. Machine
+learning offers the discrimination that the threshold lacks, but the prevailing designs train a
+model offline and then apply it to <em>all</em> traffic in userspace or in a separate system, which is
+accurate yet far too heavy to sit on the line-rate packet path. Compounding both of these
+issues, the great majority of published evaluations report only how effectively a defence
+detects attacks and remain silent on how often it wrongly blocks legitimate traffic, so the
+false-positive cost of a defence during a genuine surge is seldom quantified at all.</p>
+<p><strong>Research gap.</strong> Bringing these observations together, there is at present no in-kernel,
+line-rate DDoS mitigation approach that selectively applies machine learning so as to remain
+efficient <em>and</em> is explicitly designed and evaluated to minimise false positives against
+legitimate flash-crowd traffic. Closing that gap is the focus of this research.</p>
+<h2>1.4 Research Question</h2>
+<p>The study is organised around a single question:</p>
+<p><strong>Can a two-tier, kernel-level DDoS mitigation system — combining a cheap in-kernel filter
+with selective machine-learning escalation and an adaptively updated threshold — reduce false
+positives against a legitimate flash crowd while maintaining attack detection, compared with a
+static-threshold baseline?</strong></p>
+<p>Three sub-questions refine this main question and structure the investigation:</p>
+<ul>
+<li>Which cheap, per-source signals can be computed within the constraints of the eBPF verifier
+  and still help to separate a legitimate surge from an attack?</li>
+<li>What proportion of traffic can be resolved by the in-kernel filter alone, so that only a
+  small, genuinely ambiguous minority need be escalated to the machine-learning tier?</li>
+<li>How does an adaptively updated threshold behave during a legitimate surge compared with a
+  fixed threshold, and does that behaviour translate into fewer wrongly blocked users?</li>
+</ul>
+<h2>1.5 Research Motivation</h2>
+<p>The motivation for this research is both practical and personal. The practical motivation
+follows directly from the problem statement: the flash-crowd false-positive problem represents
+a real and under-examined cost. A defence that blocks genuine customers during the busiest and
+most valuable moments — a product launch, a ticket release, a seasonal sale — inflicts direct
+harm even as it appears to "succeed" at stopping an attack, and yet the field has devoted the
+overwhelming share of its attention to catching attacks and comparatively little to measuring
+this harm. That imbalance leaves a meaningful, well-defined, and defensible space for a focused
+contribution. The personal motivation is that the project offered an opportunity to work
+directly with eBPF and XDP, a modern and increasingly important kernel technology used in
+production by major infrastructure providers, and to do so by building and measuring a complete
+system rather than by studying the problem only in the abstract. Committing to a working
+artefact, rather than a purely theoretical proposal, also imposed a healthy discipline: every
+claim in the evaluation had to be backed by something the system actually did.</p>
+<h2>1.6 Research Aim</h2>
+<p>The aim of this research is to design, implement, and evaluate a two-tier, online-adaptive DDoS
+mitigation system that operates partly inside the Linux kernel, and to demonstrate that this
+design maintains attack detection while reducing false positives against legitimate flash-crowd
+traffic relative to a static-threshold baseline. In short, the work seeks to show that a
+defence can be made fast enough to act on the packet path and discriminating enough to spare a
+legitimate surge at the same time, by dividing the labour between a cheap kernel filter and a
+selective, more intelligent userspace tier.</p>
+<h2>1.7 Research Objectives</h2>
+<p>The following objectives are specific to this research rather than generic learning outcomes,
+and each maps onto a part of the study.</p>
+<p>1.7.1 <strong>To identify</strong> the constraints imposed by the eBPF/XDP environment, the specific
+per-source signals that can be computed cheaply within those constraints, and the concrete
+shortcomings of existing DDoS defences with respect to flash-crowd false positives.</p>
+<p>1.7.2 <strong>To analyse</strong> how legitimate flash-crowd traffic and volumetric attack traffic differ in
+ways that a two-tier design can exploit, and to analyse the trade-off between detection and
+false positives that arises under different threshold strategies.</p>
+<p>1.7.3 <strong>To design and implement</strong> Cerberus: a Tier-1 in-kernel XDP filter that counts per-source
+traffic and drops over a live threshold; a Tier-2 userspace decision tree that classifies only
+the ambiguous minority of sources; and an online control loop that updates the kernel threshold
+through BPF maps without reloading the program.</p>
+<p>1.7.4 <strong>To evaluate</strong> the system by generating both attack traffic and legitimate flash-crowd
+traffic and by measuring attack detection and flash-crowd false positives for the adaptive
+two-tier design against a static-threshold baseline, so that the research question can be
+answered with evidence rather than assertion.</p>
+<h2>1.8 Rich Picture of the Proposed Solution</h2>
+<p>The proposed solution, Cerberus, is organised as two cooperating tiers that meet at a region of
+shared memory. When a packet arrives at the network interface it first reaches the XDP hook,
+where the Tier-1 program runs. Tier-1 performs only inexpensive work: it reads the source
+address, updates a per-source counter held in a BPF hash map, compares that count against a
+threshold stored in a BPF array map, and returns a verdict of either drop or pass. Because the
+threshold lives in a map rather than being compiled into the program, userspace can change it at
+any moment, and the very next packet will be judged against the new value with no reload of the
+kernel program. This single property is what makes live, reload-free adaptation possible and is
+central to the whole design.</p>
+<p>Away from the packet path, and running only a few times per second, a userspace collector reads
+these maps and records what it finds. Sources whose counts fall within an <em>ambiguous</em> band —
+busy enough to be suspicious but not clearly attacking — are escalated to the Tier-2 decision
+tree, which was trained offline on a labelled dataset and labels each such source as attack or
+benign. In parallel, an online control loop observes the recent traffic rate and, when adaptive
+mode is enabled, writes an updated threshold back into the kernel map so that the limit rises to
+accommodate a genuine surge instead of blocking it. A lightweight dashboard reads the same
+recorded state through a REST API and presents it to a human operator, and, for evaluation, a
+pair of generators produce controlled attack and flash-crowd traffic. The essential idea to
+carry forward is that the kernel and userspace remain two separate worlds joined only by the BPF
+maps: counts flow upward from kernel to userspace, and an updated threshold flows back downward.</p>
+<blockquote>
+<p><em>(Insert Figure 1.1 — the rich-picture / workflow diagram. A ready-made version of this
+diagram is available in <code>docs/HOW_IT_ALL_CONNECTS.md</code>; redraw it cleanly for the thesis.)</em></p>
+</blockquote>
+<h2>1.9 Resource Requirements</h2>
+<h3>1.9.1 Hardware</h3>
+<ul>
+<li>A bare-metal host running Linux, used for both development and evaluation; the work was carried
+  out on an x86-64 machine. A wired network interface is preferred because it is more likely to
+  support native XDP, with generic (SKB-mode) XDP available as a fallback where native support is
+  absent.</li>
+<li>For a stronger, multi-source evaluation, one or more additional machines or virtual machines to
+  act as genuinely distinct traffic sources, since a single host cannot by itself represent the
+  many separate users that characterise a real flash crowd.</li>
+</ul>
+<h3>1.9.2 Software</h3>
+<ul>
+<li><strong>Ubuntu 24.04 LTS</strong> as the operating system, chosen for a stable and well-documented eBPF
+  toolchain rather than for the newest available release.</li>
+<li><strong>BCC (the BPF Compiler Collection)</strong> to compile and load the Tier-1 C program, because it
+  compiles the program on the host at load time and so avoids the kernel-header mismatch problems
+  that can frustrate a first eBPF project.</li>
+<li><strong>Python 3</strong> for the userspace services — the collector, the control loop, the REST API, and the
+  command-line tool — where clarity matters more than raw speed because these run off the packet
+  path.</li>
+<li><strong>scikit-learn</strong> for the Tier-2 decision tree, with <strong>pandas</strong> and <strong>NumPy</strong> for loading and
+  projecting the data, trained on the <strong>CIC-IDS-2017</strong> dataset.</li>
+<li><strong>FastAPI</strong> together with <strong>HTML, CSS, JavaScript and Chart.js</strong> for the dashboard, and
+  <strong>SQLite</strong> for local storage, keeping the stack reproducible and free of a heavy build step.</li>
+<li><strong>hping3</strong> and a custom Python generator to produce the attack and flash-crowd traffic used in
+  the evaluation.</li>
+</ul>
+<h2>1.10 Project Scope</h2>
+<table>
+<thead>
+<tr>
+<th>In scope</th>
+<th>Out of scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A single-host, two-tier prototype combining a Tier-1 XDP filter with a Tier-2 decision tree.</td>
+<td>Multi-node or distributed deployment across a datacentre.</td>
+</tr>
+<tr>
+<td>Live, reload-free threshold updates through BPF maps.</td>
+<td>Production hardening, high availability, and long-term unattended operation.</td>
+</tr>
+<tr>
+<td>Selective machine-learning escalation of only the ambiguous slice of traffic.</td>
+<td>Deep neural networks or large models, which the verifier and the project scope both exclude.</td>
+</tr>
+<tr>
+<td>A reproducible evaluation of attack detection <em>and</em> flash-crowd false positives against a static baseline.</td>
+<td>Coverage of every DDoS attack class; the focus is volumetric flooding versus legitimate surges.</td>
+</tr>
+<tr>
+<td>IPv4 traffic on a single network interface.</td>
+<td>IPv6, application-layer (Layer-7) attack semantics, and inspection of encrypted payloads.</td>
+</tr>
+</tbody>
+</table>
+<p>The scope is deliberately narrow, and that narrowness is itself a design decision rather than an
+oversight. The intention throughout was to build the minimum complete system capable of answering
+the research question convincingly, rather than a broad or production-grade product. This focus
+follows directly from the question, which concerns a specific trade-off — detection against
+flash-crowd false positives — and not maximum throughput, exhaustive attack coverage, or
+operational robustness. Keeping the boundary tight also made the work achievable within the time
+available and kept the evaluation clean, because fewer moving parts meant that any measured
+difference could be attributed to the configuration under test rather than to incidental
+complexity.</p>
+<h2>1.11 Chapter Summary</h2>
+<p>This chapter established the setting for the research. It described how DDoS attacks have grown in
+scale and frequency and why defences face a hard trade-off between acting quickly and acting
+accurately, and it identified a specific and under-examined weakness at the heart of that
+trade-off: existing in-kernel filters cannot separate a legitimate flash crowd from an attack,
+and the great majority of evaluations never measure the harm done to legitimate users. From this
+the research gap, the research question, the aim, and four research-specific objectives were
+derived, and the two-tier adaptive design, Cerberus, was introduced together with the resources
+it requires and the scope within which it was built. The next chapter reviews the relevant
+literature in detail, positions the proposed approach against existing systems, and justifies the
+research gap through a critical assessment of recent work.
+</content></p></section>
+<section class="chapter"><h1>Chapter 2 — Literature Review</h1>
+<blockquote>
+<p><strong>How to use this draft.</strong> The domain overview and technological analysis below are written from
+general, correct knowledge of the field, but the <em>specific</em> comparisons in section 2.4 must be
+filled in from the papers you actually read. Wherever you see <strong>[cite: … — verify]</strong>, insert the
+full, real reference and check that the one-line summary matches what the paper really says. Do not
+attribute a claim to a paper you have not read. Most sources should be from within the last five
+years.</p>
+</blockquote>
+<h2>2.1 Chapter Overview</h2>
+<p>This chapter reviews the research and engineering work that surrounds the problem set out in Chapter 1.
+Rather than listing sources one after another, the review is organised by the <em>approach</em> each source
+takes, so that the strengths and weaknesses of a whole family of solutions can be weighed together and
+so that my own position can be developed against them rather than merely alongside them. The chapter
+first gives a conceptual map of how the literature is arranged, then a brief overview of the domain,
+then a comparative assessment of the main families of existing DDoS defences. It then analyses those
+approaches more closely at three levels — algorithm, design, and workflow — before drawing everything
+together in a reflection that connects the reviewed work back to the gap this research addresses.
+Throughout, the intention is to review critically rather than descriptively: where a design has a
+weakness relevant to my research question, that weakness is named and its consequence drawn out.</p>
+<h2>2.2 Conceptual Map of the Literature</h2>
+<p>To keep the review coherent, the sources were arranged along two dimensions that matter most to the
+research question. The first is <em>where</em> the defence runs, which ranges from far-off scrubbing
+appliances and software-defined-networking controllers, through userspace daemons on the host, down
+to programs executing inside the kernel itself. The second is <em>how</em> the defence decides, which ranges
+from fixed rules, through statistical adaptation, to machine learning. A third question cuts across
+both of these and is, for this work, the decisive one: does the source actually measure false
+positives against legitimate traffic, or does it report only detection? Placing each reviewed work on
+this map makes visible not only where it sits but, more usefully, which corner of the map is sparsely
+populated. The sections that follow move through the map in order, beginning with the general domain,
+proceeding to specific systems, and then examining the technology in closer detail.</p>
+<blockquote>
+<p><em>(Insert Figure 2.1 — a conceptual map of the literature, with placement on one axis and decision
+method on the other, and the flash-crowd-evaluation question marked against each work reviewed.)</em></p>
+</blockquote>
+<h2>2.3 Domain Overview</h2>
+<p>A distributed denial-of-service attack aims to exhaust a target's resources rather than to breach its
+confidentiality or integrity. The family is usually divided into three broad categories. <em>Volumetric</em>
+attacks, which are the focus of this research, simply overwhelm the victim's bandwidth or processing
+capacity with sheer quantity of traffic. <em>Protocol</em> attacks exploit weaknesses in the way network
+protocols manage state, for instance by exhausting a server's table of half-open connections.
+<em>Application-layer</em> attacks target the logic of a specific service with requests that are individually
+plausible but collectively ruinous. Across all three, the distributed origin of the traffic is what
+makes the problem hard: because the load is assembled from many separate sources, often compromised
+consumer and Internet-of-Things devices marshalled into a botnet, there is no single address to block
+and each packet may be perfectly valid in isolation. The task facing a defender is therefore the
+recognition of an abnormal aggregate pattern, not the recognition of an individually malformed packet.</p>
+<p>Where a defence sits in the network path is as consequential as how cleverly it reasons. In the Linux
+networking stack a packet passes first through the network driver and then through a long sequence of
+processing stages before any application receives it. The eXpress Data Path, or XDP, is the earliest
+programmable point in that sequence, situated immediately after the driver. A small program attached at
+the XDP hook, expressed in the extended Berkeley Packet Filter (eBPF) instruction set, can inspect and
+drop a packet before the kernel expends any further effort on it, which is the source of in-kernel
+filtering's speed advantage. That advantage comes at a price. Before an eBPF program is permitted to
+load, the kernel's verifier statically analyses it and rejects any program containing unbounded loops
+or exceeding strict size limits, precisely so that a faulty or malicious program cannot compromise the
+kernel's stability. The practical effect is that only cheap, provably bounded computation may run on
+this fast path, which sharply limits how sophisticated an in-kernel decision can be and is the root
+technical reason that richer reasoning must be delegated elsewhere.</p>
+<p>The third element of the domain, and the one most central to this research, is the flash crowd. A flash
+crowd is a sudden, steep rise in traffic produced not by an adversary but by a large number of genuine
+users arriving within a short window — the release of concert tickets, the opening of a sale, a news
+event, or an examination deadline. Although its cause is entirely benign, a flash crowd shares the one
+feature that a volume-based defence keys upon, namely a sharp increase in traffic, and it is therefore
+easily mistaken for a volumetric attack. The literature on flash crowds establishes both that the
+phenomenon is real and economically important and that distinguishing it from an attack is genuinely
+difficult <strong>[cite: a recent flash-crowd study — verify]</strong>, which frames the specific problem this work
+attacks: not merely to detect attacks, but to detect them without mistaking a legitimate surge for one.</p>
+<h2>2.4 Existing Systems, Frameworks, and Designs</h2>
+<p>The systems reviewed fall into a handful of families, and it is more instructive to weigh each family
+than to examine each paper in isolation, because the members of a family tend to share both a
+characteristic strength and a characteristic limitation.</p>
+<p><em>Fixed-threshold and signature-based filters</em> are the oldest and simplest family. They drop traffic
+that either matches a known signature or exceeds a static per-source rate. Their appeal is speed and
+predictability, and because their logic is so cheap they map naturally onto in-kernel implementations.
+Their defining weakness is rigidity. A threshold that is correct for a quiet period is wrong during a
+surge, and there is no mechanism within the approach to tell the difference, so a threshold aggressive
+enough to stop an attack is exactly the threshold that will block a legitimate flash crowd. In my
+assessment this family defines the problem the present research responds to rather than solving it.</p>
+<p><em>Statistically adaptive defences</em> improve on the fixed threshold by recomputing the limit from recent
+traffic. The closest example I reviewed adapts the threshold continuously, but it does so with a purely
+statistical rule and drives that rule from a software-defined-networking controller rather than from
+inside the host <strong>[cite: Elzoghbi &amp; He — verify]</strong>. The advance here is real: an adaptive threshold is
+plainly better suited to a fluctuating world than a fixed one. Yet two limitations remain relevant to
+my work. First, relying on an external controller reintroduces the very round-trip delay that in-kernel
+filtering exists to remove. Second, a statistical rule, however well tuned, still has no learned notion
+of whether a given surge is legitimate; it adapts to volume, not to intent.</p>
+<p><em>Machine-learning detectors</em> bring the discrimination that thresholds lack. Trained offline on labelled
+datasets such as CIC-IDS-2017, they can separate attack from benign traffic with high reported accuracy
+<strong>[cite: Anand et al. — verify]</strong>. The limitation common to most of this family is one of placement and
+scope rather than of accuracy: the classifier is typically applied to all traffic and runs in userspace
+or offline, which is accurate but far too heavy to sit on the line-rate packet path. The lesson I drew
+from this family is not that machine learning is unsuitable, but that it must be applied selectively
+rather than universally if it is to coexist with line-rate filtering.</p>
+<p><em>In-kernel and eBPF/XDP systems</em> push filtering to the fastest available point and have been used
+successfully for volumetric mitigation in both research and production <strong>[cite: SmartX / Farasat —
+verify]</strong>. They confirm empirically that the hot path can be made extremely fast. However, the
+published designs generally keep their in-kernel logic simple and coarse — as the verifier obliges them
+to — and in doing so they inherit the flash-crowd blindness of the fixed-threshold family. They
+demonstrate the speed half of the problem's solution without addressing the discrimination half.</p>
+<p><em>Flash-crowd-focused work</em>, finally, studies the similarity between legitimate surges and attacks
+directly <strong>[cite: Hara &amp; Sasabe — verify]</strong>. This family is encouraging because it shows the problem is
+recognised and taken seriously, but the works I found tend to analyse or simulate the phenomenon rather
+than to build a fast, in-kernel defence that is then evaluated against it. They supply motivation and
+method for the false-positive question without supplying the in-kernel system that answers it.</p>
+<p>The comparison below summarises how each family stands on the dimensions that matter to this research.
+<em>(Complete the citation entries with your real, verified references, and expand each row with a
+sentence or two of your own critical reflection drawn from the specific paper.)</em></p>
+<table>
+<thead>
+<tr>
+<th>Family (representative work)</th>
+<th>Placement</th>
+<th>Decision method</th>
+<th>Adapts live?</th>
+<th>Evaluates flash-crowd FP?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fixed-threshold / signature</td>
+<td>in-kernel / edge</td>
+<td>static rule</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Statistically adaptive [cite — verify]</td>
+<td>SDN controller</td>
+<td>statistical threshold</td>
+<td>Yes (external)</td>
+<td>Rarely</td>
+</tr>
+<tr>
+<td>ML-based detector [cite — verify]</td>
+<td>userspace / offline</td>
+<td>trained classifier on all traffic</td>
+<td>No</td>
+<td>Detection-focused</td>
+</tr>
+<tr>
+<td>eBPF/XDP volumetric filter [cite — verify]</td>
+<td>in-kernel</td>
+<td>coarse volume rule</td>
+<td>Limited</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Flash-crowd study [cite — verify]</td>
+<td>analysis / simulation</td>
+<td>statistical</td>
+<td>—</td>
+<td>Studies FP, not in-kernel defence</td>
+</tr>
+<tr>
+<td><strong>Cerberus (this work)</strong></td>
+<td><strong>in-kernel + selective userspace ML</strong></td>
+<td><strong>cheap filter + escalated tree + adaptive threshold</strong></td>
+<td><strong>Yes (via BPF map)</strong></td>
+<td><strong>Yes — measured</strong></td>
+</tr>
+</tbody>
+</table>
+<h2>2.5 Technological Analysis</h2>
+<h3>2.5.1 Algorithmic Analysis</h3>
+<p>At the algorithmic level, the reviewed approaches occupy a spectrum that trades cost against
+discrimination. At the cheap end, counting packets per source and comparing against a threshold is
+extremely inexpensive and can be evaluated for every packet, but it carries no information about intent
+and so cannot separate a surge from an attack. A step along the spectrum, statistical adaptation — for
+example an exponentially weighted moving average of the traffic rate — adds a sense of what is "normal"
+for the current moment at very little additional cost, which is precisely why the control loop in this
+project adopts that idea to move the threshold rather than a more elaborate estimator. Further along,
+a decision tree occupies a valuable middle ground: once it has been trained, evaluating it amounts to a
+short, fixed sequence of comparisons, which is both fast and, crucially, bounded. That boundedness is
+not an incidental convenience but a hard requirement near the kernel, because the eBPF verifier will not
+admit unbounded computation. At the far, expensive end, deep neural networks offer the greatest
+discriminative power but require unbounded or very large computation and substantial model state, which
+places them firmly outside what can run on the fast path. This spectrum is the concrete reason that the
+field, and this project, favour a shallow decision tree for anything close to the kernel: the intended
+contribution lies in the architecture that decides <em>when</em> to invoke the model, not in the raw power of
+the model itself, and a tree is both sufficient and affordable for the selective role it is given.</p>
+<h3>2.5.2 Design Analysis</h3>
+<p>The design question that recurs throughout the literature is placement, and each choice of placement
+carries a characteristic trade-off. Defences positioned far from the host — scrubbing appliances,
+network-edge devices, or SDN controllers — can bring considerable analytical power and a global view to
+bear, but they add a round trip to every decision, which is costly against short, sharp bursts.
+Defences positioned in userspace on the host are flexible and easy to develop, but they sit behind the
+full networking stack and so cannot act before the kernel has already invested effort in a packet.
+Defences positioned in the kernel act at the earliest and fastest point but are tightly constrained in
+what they may compute. Taking all three trade-offs seriously points towards a single design: keep a
+cheap, always-on filter on the hot path in the kernel, and reserve the expensive, more intelligent
+decision for a cold path in userspace that runs only occasionally and only on the traffic the fast path
+could not resolve. This hot-path/cold-path separation is well established in high-performance
+networking generally, and the contribution of this work is not to invent it but to apply it
+specifically to the flash-crowd problem, using the shared map both as the channel that carries counts
+upward and as the channel that carries an adapted threshold back down.</p>
+<h3>2.5.3 Workflow Analysis</h3>
+<p>Viewed as a workflow, most machine-learning defences share a common two-phase shape: an offline
+training phase that produces a model from labelled data, and an online phase that applies that model to
+live traffic. What differs between designs, and what matters most for this research, is the boundary
+drawn within the online phase between its fast and slow parts, and the manner in which those parts
+communicate. In many of the designs I reviewed, that communication is loose, or changing the system's
+behaviour requires reconfiguring or reloading a component. The workflow adopted here tightens the
+coupling deliberately: the kernel writes per-source counts into shared BPF maps, userspace reads those
+counts and, when it judges it necessary, writes an updated threshold straight back into the same maps,
+and the kernel honours the new value on its very next packet without being reloaded. Treating the map
+as the live contract between the two tiers is what allows selective escalation and reload-free
+adaptation to coexist within a single, coherent workflow, and it is this workflow, more than any
+individual algorithm, that distinguishes the proposed system from the designs reviewed here.</p>
+<h2>2.6 Reflection</h2>
+<p>Drawing the review together, three observations stand out, and they are not independent of one another.
+First, adapting the detection threshold is known to help, but the existing adaptive schemes are either
+purely statistical or depend on an external controller, and none of them combine a <em>learned</em> signal
+with live, in-kernel updates. Second, machine learning clearly improves discrimination, yet it is
+almost always applied to all traffic rather than selectively to the ambiguous minority, which is exactly
+what keeps it off the fast path and confines it to userspace or offline use. Third, and most tellingly,
+the overwhelming majority of the work reviewed evaluates only how well a defence catches attacks and
+says nothing about how often it wrongly blocks legitimate users during a surge.</p>
+<p>These three observations converge on the same missing design. What the literature lacks is an in-kernel,
+line-rate defence that filters cheaply on all traffic, escalates only the genuinely ambiguous slice to a
+learned model, adapts its threshold live through the shared map, and — decisively — is evaluated on the
+false positives it inflicts on a legitimate flash crowd. Each reviewed family supplies one piece of this
+picture: the eBPF filters supply the speed, the machine-learning detectors supply the discrimination,
+the statistical schemes supply the idea of adaptation, and the flash-crowd studies supply the evaluation
+question. No single reviewed system supplies all four together. That absence is the gap this research
+sets out to fill, and it shapes directly the objectives stated in Chapter 1 and the system specified in
+the chapters that follow.
+</content></p></section>
+<section class="chapter"><h1>Chapter 3 — Methodology</h1>
+<blockquote>
+<p><strong>How to use this draft.</strong> The methodology below matches how the project was actually
+carried out — building the artefact and then running controlled experiments on it. Read it
+and confirm the choices with your supervisor, since the paradigm and strategy are exactly
+the kind of decision they will expect you to have discussed. Adjust the timeline dates to
+your real schedule.</p>
+</blockquote>
+<h2>3.1 Chapter Overview</h2>
+<p>This chapter explains the reasoning behind how the research was conducted rather than what it
+produced. It begins with the philosophical stance that frames the whole investigation, then
+sets out the broad approach, the specific strategy, and the mechanisms used to gather facts.
+It presents, in tabular form, how each standard research activity was addressed in practice,
+and it justifies the project-management method chosen to organise the work. The chapter closes
+with the project timeline and a consideration of the ethical issues raised by building and
+testing a security tool. Throughout, the guiding concern is coherence: the paradigm, approach,
+strategy, and methods are chosen so that they fit one another and, together, fit the research
+question posed in Chapter 1.</p>
+<h2>3.2 Research Paradigm</h2>
+<p>The philosophical stance behind this research is pragmatism. The study was not an attempt to
+uncover a single objective truth about a natural phenomenon, as a purely positivist enquiry
+might be, nor was it an attempt to interpret subjective human meaning, as an interpretivist
+enquiry would. Its purpose was more direct: to find out whether a particular engineered design
+<em>works</em>, and whether it works <em>better</em> than an established alternative when judged against a
+clearly defined and measurable criterion. Pragmatism is the paradigm that fits this intent,
+because it evaluates ideas by their practical consequences and is comfortable drawing on
+whatever combination of methods best answers the question at hand.</p>
+<p>Adopting a pragmatic stance had concrete consequences for the design of the study. It justified
+the decision to build a real, running artefact and then to let experimental measurement — rather
+than argument or intuition — determine whether the design achieved its aim. It also legitimised
+combining two quite different sources of evidence within a single project: an existing,
+independently produced labelled dataset on one hand, and measurements generated by operating the
+system under controlled conditions on the other. A stricter, single-method paradigm would have
+made that combination awkward to justify, whereas pragmatism treats the mixing of methods as a
+strength when each contributes something the other cannot. In short, the paradigm was chosen
+because the question is fundamentally a practical one, and pragmatism keeps the methodology
+honestly aligned with that practicality.</p>
+<h2>3.3 Research Approach</h2>
+<p>The approach is primarily deductive and experimental, with an explicit design-and-build
+component. The reasoning proceeded from the general to the particular. From the literature a
+clear expectation was formed — in effect a hypothesis — that a two-tier, adaptive, in-kernel
+design would maintain attack detection while reducing flash-crowd false positives compared with
+a static threshold. The remainder of the work then tested that expectation by constructing the
+system and observing whether the predicted outcome actually occurred under repeated and varied
+conditions. This top-down movement, from a theory-derived prediction to its empirical test, is
+the defining feature of a deductive approach and distinguishes it from a purely inductive study
+that would instead build generalisations upward from unstructured observation.</p>
+<p>At the same time, the object of study did not exist before the research began; it had to be
+created in order to be examined. For that reason the approach also draws on design-science
+thinking, in which the constructed artefact is itself a legitimate part of the contribution and
+knowledge is produced through the act of building and evaluating it. The two views are
+complementary here: design science accounts for the creation of Cerberus, and the deductive,
+experimental view accounts for how the resulting artefact was tested against a baseline.</p>
+<h2>3.4 Research Strategy</h2>
+<p>The strategy combines design (the construction of the Cerberus prototype) with controlled
+experimentation (the systematic measurement of that prototype). Experimentation is the
+appropriate strategy here for a specific reason: the research question is comparative, and the
+relevant variables can be deliberately controlled. In a controlled experiment the investigator
+holds most conditions constant and changes only the factor under study, so that any observed
+difference in outcome can reasonably be attributed to that factor rather than to chance or to
+some uncontrolled difference in the inputs.</p>
+<p>In practice this meant running the same, repeatable traffic scenarios against two configurations
+of the same system — a static-threshold baseline representing the conventional approach, and the
+adaptive two-tier configuration representing the proposed design — while keeping the generated
+traffic, the host, and the measurement procedure identical between the two runs. Because only the
+configuration differed, a difference in the number of legitimate users wrongly blocked could be
+attributed to the configuration itself. This design also made the results reproducible: the same
+scenario can be run again and is expected to yield the same qualitative outcome, which is a basic
+requirement of credible experimental work.</p>
+<h2>3.5 Fact-Collection Mechanisms</h2>
+<p>Three distinct sources of fact were used, and using more than one gave the evaluation more than
+one independent footing. The first source was the <strong>CIC-IDS-2017 dataset</strong>, a widely used and
+independently produced record of labelled benign and attack network flows. It was used to train
+and to test the Tier-2 decision tree offline, before any live traffic was involved, so that the
+classifier's quality could be assessed against data the project did not itself create. Using an
+established benchmark rather than a self-generated dataset strengthens the credibility of the
+machine-learning results, because the data were not shaped to flatter the model.</p>
+<p>The second source was <strong>direct measurement from the running system</strong>. With the prototype attached
+to the kernel, controlled attack and flash-crowd traffic was generated and directed at the host,
+and the per-source counters, the global drop and pass tallies, and the classifier's verdicts were
+read straight from the kernel maps and the system's records. These measurements are the primary
+evidence for the central claim, because they capture what the system actually did to real
+traffic rather than what it was predicted to do. A deliberate methodological choice was made to
+read the kernel maps directly rather than through the network interface, so that the measurement
+channel could not itself be affected by the filtering under test.</p>
+<p>The third and more informal source was the <strong>behaviour observed during development</strong>, which fed
+back into design decisions. Several practical facts — for example how a particular kernel reacted
+to the program, or how loopback traffic behaved under a low threshold — could only be discovered
+by running the system, and these observations shaped subsequent choices. Taken together, the
+labelled dataset, the live measurements, and the developmental observations provided a fuller and
+more robust body of evidence than any one of them alone.</p>
+<h2>3.6 Research Methodology Execution Workflow</h2>
+<p>The table below maps the standard sequence of research activities onto what was actually done in
+this project, so that the connection between the abstract methodology and the concrete work is
+explicit.</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th>How it was addressed in this research</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Problem identification</td>
+<td>Recognised the tension between fast in-kernel filtering and accurate discrimination, and the specific, under-studied cost of wrongly blocking legitimate flash crowds.</td>
+</tr>
+<tr>
+<td>Relevance justification</td>
+<td>Grounded the problem in the documented growth of DDoS attacks and in the practical harm of false positives during high-value traffic surges, as set out in Chapter 1 and supported by recent sources.</td>
+</tr>
+<tr>
+<td>Comparative analysis and gap justification</td>
+<td>Reviewed existing threshold-based, statistical, machine-learning, and eBPF/XDP approaches and showed that none combine selective in-kernel machine learning with a live-adapted threshold <em>and</em> a flash-crowd false-positive evaluation, as detailed in Chapter 2.</td>
+</tr>
+<tr>
+<td>Define and finalise objectives</td>
+<td>Derived four research-specific objectives — to identify, to analyse, to design and implement, and to evaluate — directly from the stated gap.</td>
+</tr>
+<tr>
+<td>Design, development, and data handling</td>
+<td>Built the two-tier system; trained the decision tree on CIC-IDS-2017; used shared BPF maps as the sole contract between kernel and userspace; and stored run data locally in SQLite for reproducibility.</td>
+</tr>
+<tr>
+<td>Evaluation and communication</td>
+<td>Generated attack and flash-crowd traffic, measured detection and false positives against a static baseline, and communicated the outcome through figures, tables, and this dissertation.</td>
+</tr>
+</tbody>
+</table>
+<h2>3.7 Project Management Methodology</h2>
+<p>The work was managed in an agile, iterative style rather than as a single large build carried out
+in one pass. This choice suited the project for a concrete and important reason. With eBPF, a
+significant part of the system's behaviour cannot be predicted reliably in advance: whether the
+verifier will accept a given program, how a particular kernel version will react to it, and
+whether a network interface supports native XDP are all matters that, in practice, are discovered
+by trying rather than by planning. A method that front-loads all planning and defers all testing —
+a strict waterfall, for example — copes badly with that kind of uncertainty, because a problem
+discovered late can invalidate a great deal of earlier work. An iterative method, in which each
+short cycle produces something that actually runs and is tested before the next cycle begins,
+absorbs the uncertainty far more gracefully.</p>
+<p>The project was therefore organised as a sequence of small, individually runnable milestones. The
+progression moved deliberately from the simplest possible foundation upward: a minimal program
+that merely attaches at the XDP hook and passes all traffic, confirming that the toolchain and the
+machine can load eBPF at all; then a single global packet counter, confirming that kernel and
+userspace can share state through a map; then per-source counting with thresholded dropping, which
+is the core of Tier 1; then the userspace read layer, the database, the API, and the dashboard;
+then the adaptive control loop; then the machine-learning tier; and finally the evaluation. Each
+milestone was verified before the next was begun, so that at no point did a large, untested body
+of code accumulate. This organisation is closest in spirit to the short, outcome-bearing
+iterations of Scrum, scaled down to a single-person project, and it proved well matched to the
+exploratory nature of kernel-level development.</p>
+<h3>3.7.1 Project Timeline</h3>
+<p>The project ran over approximately <strong>[INSERT REAL DURATION]</strong>, structured around the milestones
+described above. <em>(Insert your real Gantt chart or milestone table here, giving the actual start
+and end dates for each milestone: environment setup and the initial hello-XDP program; global and
+then per-source counting with thresholded dropping; the backend, database, and dashboard; the
+adaptive control loop; decision-tree training on CIC-IDS-2017; and the final evaluation and
+write-up. Showing the milestones against a calendar demonstrates how the iterative plan was
+actually executed.)</em></p>
+<h3>3.7.2 Ethical Considerations</h3>
+<p>Although the project did not involve human participants, building and testing a security tool
+raises ethical points that were considered and addressed directly. All attack and flash-crowd
+traffic used in the study was synthetic and was generated against a machine under the researcher's
+own control, on an isolated setup; at no stage was any third-party system, network, or service
+targeted, so no live service was placed at risk and no unauthorised testing took place. Because no
+personal or human-subject data was collected, questions of informed consent and privacy did not
+arise. The one external asset used, the CIC-IDS-2017 dataset, is a recognised research dataset
+that was used within its intended terms and cited appropriately. Finally, mindful that the
+techniques involved can in principle be misused, the write-up concentrates on the defensive design
+and its evaluation and deliberately avoids presenting material whose main value would be to assist
+an attacker. These measures keep the research within responsible bounds while still allowing a
+meaningful evaluation to be carried out.</p>
+<h2>3.8 Chapter Summary</h2>
+<p>This chapter set out how the research was conducted and why those choices were appropriate. It
+adopted a pragmatic paradigm, suited to a question about whether an engineered design works better
+than a baseline, and a deductive, experimental approach with a design-and-build component,
+appropriate to a study whose object had to be constructed before it could be measured. Facts were
+drawn from three complementary sources — the CIC-IDS-2017 dataset, direct measurement of the
+running prototype, and observations made during development — and the work was managed as a series
+of small, individually tested milestones in order to cope with the uncertainty inherent in
+kernel-level eBPF development. The ethical footprint of the work was small and was handled by using
+only self-controlled targets, synthetic traffic, and a properly licensed dataset. The chapters
+that follow apply this methodology in practice: Chapter 4 specifies the system's requirements,
+Chapter 5 describes its implementation, and Chapter 6 reports and reviews the evaluation.
+</content></p></section>
+<section class="chapter"><h1>Chapter 4 — System Requirement Specification</h1>
+<blockquote>
+<p><strong>How to use this draft.</strong> The requirements, stakeholders, and use cases below describe the
+system you actually built. The UML diagrams (use case, class, activity, sequence, deployment)
+are described in enough detail for you to <em>draw</em> them; please create them in a tool such as
+draw.io and insert each figure where marked, then confirm they match your code. Drawing them
+yourself also means you can explain them in the viva.</p>
+</blockquote>
+<h2>4.1 Chapter Overview</h2>
+<p>This chapter turns the aim and objectives from Chapter 1 into a concrete specification of what the
+system must do and for whom. It begins by identifying the stakeholders and the concerns each of
+them brings to the system, because those concerns are what ultimately justify the requirements.
+It then explains how the research objectives were made measurable through the dataset and the
+generated traffic, an activity that stands in this systems project in place of the questionnaire
+or interview used in more survey-oriented work. The system is then modelled from several
+complementary angles using the standard UML views — use case, class, activity, sequence, and
+deployment — so that its behaviour, its structure, and its distribution across the machine are
+each made explicit. Finally the chapter presents the proposed architecture and states the
+functional and non-functional requirements that the implementation described in Chapter 5 was
+built to satisfy.</p>
+<h2>4.2 Stakeholder Analysis</h2>
+<p>Although the prototype is a research artefact rather than a deployed commercial product, it is
+useful and legitimate to reason about the people and roles whose interests the system touches,
+because those interests shaped what the system was required to do.</p>
+<p>The <strong>service operator</strong>, or defender, is the primary stakeholder. This is the administrator who
+would run Cerberus in front of a service they are responsible for keeping available. Their central
+concern is twofold and, importantly, in tension: they need to stop attacks, and they need to keep
+the service reachable by genuine users at the same time. From this concern flow several
+requirements — that the system act quickly, that it not over-block during a surge, and that it give
+the operator enough visibility to understand and trust what it is doing.</p>
+<p>The <strong>legitimate end users</strong> are an indirect but central stakeholder. They never interact with
+Cerberus and are usually unaware of its existence, yet the entire flash-crowd component of the
+research exists to protect them. Their interest is simply to reach the service they came for, even
+during a busy moment, and it is precisely this interest that a naive, volume-only defence
+threatens. Treating end users as a stakeholder in their own right is what elevates false positives
+from a technical afterthought to a first-class requirement.</p>
+<p>The <strong>attacker</strong> appears in the model as an adversarial actor rather than a beneficiary. Their goal
+is to deny service, and the system's requirement in respect of them is to recognise and drop their
+traffic. Modelling the attacker explicitly is useful because it clarifies which behaviours the
+system must treat as hostile and which it must be careful to leave alone.</p>
+<p>Finally, the <strong>researcher and developer</strong> — the author — and the <strong>supervisor and examiner</strong> are
+stakeholders in the evaluation rather than in day-to-day operation. Their shared interest is that
+the system produce clear, honest, and reproducible measurements capable of answering the research
+question, which translates into requirements for reproducibility, for observable behaviour, and
+for a clean separation between the effect being measured and the means of measuring it.</p>
+<h2>4.3 Operationalisation Process</h2>
+<p>Because this is an experimental systems project rather than a survey of opinion, the process of
+gathering data took the form of a labelled dataset and controlled measurement rather than a
+questionnaire or interview. It is nevertheless important to show how each means of gathering data
+maps onto a research objective, since that mapping is what justifies treating the resulting
+requirements as valid.</p>
+<p>The <strong>CIC-IDS-2017 dataset</strong> operationalises the analytical and design objectives for the
+machine-learning tier. Its labelled records of benign and attack flows are the material from which
+the decision tree learns and against which its accuracy is judged, so the dataset is the concrete
+instrument that turns the abstract objective of "classify ambiguous traffic" into something that
+can be trained and measured. The <strong>generated attack and flash-crowd traffic</strong>, together with the
+counters read from the kernel, operationalises the evaluation objective. Firing controlled,
+known traffic at the system and recording how much of it is dropped is what converts the research
+question into numbers that can be compared between configurations. The validity of these choices
+rests on two supports: that CIC-IDS-2017 is an accepted benchmark within the field, and that the
+generated traffic is controlled and repeatable, so that a measured difference in outcome can be
+attributed to the system's configuration rather than to variation in the input. Reviewing the
+results of this data gathering confirmed that both instruments were fit for purpose — the dataset
+was rich enough to train a usable classifier, and the generated traffic was controllable enough to
+produce a clean comparison — which is what justifies the requirements derived from them.</p>
+<h2>4.4 System / Model Analysis</h2>
+<h3>4.4.1 Use Case Diagram</h3>
+<p>The system is modelled with three external actors. The <strong>Operator</strong> interacts with the running
+system through the dashboard and the API. The <strong>Attacker</strong> is an external actor whose packets enter
+the system from outside and are acted upon rather than an actor who operates the system. For the
+purposes of evaluation, a <strong>Traffic Generator</strong> actor represents the tooling that produces both
+attack and legitimate-surge traffic. The automated tiers of the system are not external actors;
+they act internally in response to traffic and to the operator's settings.</p>
+<p>The operator's use cases are: <em>view live status</em>, which retrieves the current counters, top
+sources, and events; <em>set threshold manually</em>, which writes a chosen threshold into the kernel;
+<em>enable or disable adaptive control</em>, which turns the automatic threshold adjustment on or off;
+and <em>clear counters</em>, which resets the per-source counts between runs. The evaluation use cases,
+driven by the Traffic Generator, are <em>start attack traffic</em> and <em>start flash-crowd traffic</em>.
+Internally, and triggered by incoming packets rather than by an actor, the system also <em>filters
+packets</em>, <em>escalates ambiguous sources</em> to the classifier, and <em>adapts the threshold</em>; these are
+best shown with «include» relationships from the operator-facing or traffic-driven cases they
+support.</p>
+<blockquote>
+<p><em>(Insert Figure 4.1 — use case diagram. Connect the Operator to the four operator use cases, the
+Traffic Generator to the two demonstration use cases, and show the internal "filter", "escalate",
+and "adapt" cases with «include» relationships where appropriate.)</em></p>
+</blockquote>
+<h3>4.4.2 Class Diagram</h3>
+<p>The userspace side of the system is organised around a small set of cooperating classes whose
+responsibilities mirror the files in the backend, an arrangement that keeps the design easy to
+reason about. The <code>BpfSession</code> class owns the connection to the loaded kernel program and its maps
+and is the single point through which the rest of the system reads or writes kernel state; it
+exposes operations to read the global totals, read the top sources, get and set the threshold, and
+clear the counters. The <code>Collector</code> class runs on a timer and depends on a <code>BpfSession</code> to read the
+maps; it persists each snapshot through the <code>DB</code> helper and, when it finds an ambiguous source,
+calls the classifier. The <code>ControlLoop</code> class likewise depends on a <code>BpfSession</code>, computing an
+updated threshold from the recent traffic and writing it back into the map. The classifier is a
+module that loads the trained decision tree once and exposes a single <code>classify_flow</code> operation.
+The <code>API</code> layer holds references to these objects and exposes their capabilities over HTTP to the
+dashboard and the command-line tool. The key relationships are therefore associations of use —
+<code>Collector</code> and <code>ControlLoop</code> each use a <code>BpfSession</code>, and <code>Collector</code> uses both the <code>DB</code> and the
+classifier — with the <code>API</code> acting as the outward-facing façade over the whole set.</p>
+<blockquote>
+<p><em>(Insert Figure 4.2 — class diagram showing BpfSession, Collector, ControlLoop, DB, the
+classifier module, and the API, with their principal methods and the "uses" associations between
+them.)</em></p>
+</blockquote>
+<h3>4.4.3 Activity Diagram</h3>
+<p>The single most important activity in the system is the life of one packet on the fast path. The
+activity begins when a packet reaches the XDP hook. The program first checks that the Ethernet
+header and then the IPv4 header lie wholly within the packet's bounds; if either check fails, the
+packet is passed unmodified, because the verifier requires such bounds checks and because
+non-conforming or non-IPv4 traffic is outside the scope of the filter. Assuming the checks succeed,
+the program reads the source address, increments that source's counter, and reads the current
+threshold from its map. It then reaches the central decision point: if the source's count has
+reached the threshold, the program records a drop and returns the drop verdict; otherwise it
+records a pass and returns the pass verdict. A second, slower activity runs independently in
+userspace: on each timer tick the collector reads the maps, decides whether any source now falls
+within the ambiguous band, and, for any that do, escalates them to the classifier. Presenting these
+as two separate activities reflects the real separation between the fast kernel path and the slow
+userspace path.</p>
+<blockquote>
+<p><em>(Insert Figure 4.3 — activity diagram of the packet path, showing the two bounds checks, the
+counter increment, the threshold comparison, and the drop/pass branch, with the userspace
+escalation activity shown alongside.)</em></p>
+</blockquote>
+<h3>4.4.4 Sequence Diagrams</h3>
+<p>Three sequences capture the system's most important interactions, and together they cover the fast
+path, the escalation path, and the adaptation path.</p>
+<p>The <strong>filtering sequence</strong> shows a packet arriving at the XDP program, the program updating the
+per-source counter in the <code>ip_count</code> map and reading the threshold from the <code>config</code> map, and a
+verdict being returned to the kernel — the entire interaction taking place within the hot path and
+without any involvement from userspace.</p>
+<p>The <strong>escalation sequence</strong> shows the <code>Collector</code> reading the maps on its tick, identifying a source
+whose count lies within the ambiguous band, calling <code>classify_flow</code> on that source's features,
+receiving an attack-or-benign label in return, and recording the result as an event. This sequence
+makes visible the selective nature of the design: only ambiguous sources ever reach the classifier.</p>
+<p>The <strong>adaptation sequence</strong> shows the two ways the threshold can change. In one, the operator issues
+a <em>set threshold</em> request through the API, which writes the new value into the <code>config</code> map. In the
+other, the <code>ControlLoop</code> computes a new threshold from recent traffic and writes it into the same
+map. In both cases the sequence ends with the kernel reading the updated value on the next packet,
+which illustrates the reload-free nature of the update.</p>
+<blockquote>
+<p><em>(Insert Figures 4.4–4.6 — the filtering, escalation, and adaptation sequence diagrams, each
+mapped to the use case it realises.)</em></p>
+</blockquote>
+<h3>4.4.5 Deployment Diagram (optional)</h3>
+<p>The deployment is a single host, which keeps the picture simple. Within that host, one node
+represents kernel space and contains the XDP program together with the three BPF maps; a second
+node represents userspace and contains the Python services and the SQLite database. A separate node
+represents the operator's web browser, which communicates with the API over HTTP. The diagram makes
+clear that although the system spans the kernel and userspace boundary, it runs on one machine, and
+that the only channel across that internal boundary is the set of BPF maps.</p>
+<blockquote>
+<p><em>(Insert Figure 4.7 — deployment diagram, if included.)</em></p>
+</blockquote>
+<h2>4.5 Proposed System Architecture</h2>
+<p>The architecture is the two-tier design that runs throughout this dissertation. Tier 1 is the XDP
+program in the kernel, which performs cheap per-source counting and thresholded dropping on every
+packet that arrives. Tier 2 is the userspace decision tree, which is invoked only for the ambiguous
+minority of sources that Tier 1 cannot confidently resolve. The two tiers do not call one another
+directly; they communicate solely through the BPF maps, which hold the per-source counts, the live
+threshold, and the global totals. Arranged around this core are the collector, which reads the maps
+on a timer and persists what it finds; the control loop, which writes an updated threshold back into
+the kernel; the SQLite database, which is the local source of truth for historical data; the REST
+API, which exposes the state; and the dashboard, which presents it to an operator. The defining
+characteristic of the architecture is this strict separation of a fast hot path from a slow cold
+path, joined only by shared memory, which is what allows the system to be fast and discriminating
+at once.</p>
+<blockquote>
+<p><em>(Insert Figure 4.8 — system architecture. A clean version of this diagram already exists in
+<code>docs/HOW_IT_ALL_CONNECTS.md</code>; redraw it for the thesis with kernel and userspace clearly
+separated and the maps shown as the bridge between them.)</em></p>
+</blockquote>
+<h2>4.6 Functional and Non-functional Requirements</h2>
+<p><strong>Functional requirements.</strong> The system shall: (F1) attach an eBPF program at the XDP hook and count
+packets per source IP address; (F2) drop packets from a source once its count reaches the current
+threshold, and pass them otherwise; (F3) allow the threshold to be updated at runtime, taking effect
+on the next packet, without reloading the kernel program; (F4) read the kernel counters periodically
+and persist them to local storage; (F5) identify sources whose counts fall within the ambiguous band
+and classify those sources with the decision tree; (F6) adjust the threshold automatically from
+recent traffic when adaptive mode is enabled; (F7) expose the live state through a REST API and a
+dashboard, and through a command-line tool; and (F8) generate controlled attack and flash-crowd
+traffic for the purposes of evaluation.</p>
+<p><strong>Non-functional requirements.</strong> The system should: (N1) perform its per-packet work cheaply enough
+to run on the hot path, remaining within the eBPF verifier's limits on program size and control flow;
+(N2) keep the userspace services off the packet path, so that their execution speed does not affect
+packet forwarding; (N3) remain stable during sustained high-rate traffic, continuing to count and
+drop correctly under load; (N4) resolve the kernel–userspace contract through a single shared map
+layout, so that the two sides cannot drift out of agreement; (N5) be reproducible, relying on a fixed
+dataset and controlled, repeatable traffic so that results can be re-obtained; and (N6) be usable,
+presenting its state clearly enough that an operator can understand what the system is doing at a
+glance. The functional requirements describe what the system must do to realise the design, while the
+non-functional requirements capture the qualities — speed, stability, reproducibility, and clarity —
+without which the functional behaviour would not be trustworthy.</p>
+<h2>4.12 Chapter Summary</h2>
+<p>This chapter specified the system. It identified the operator, the protected end users, the attacker,
+and the research stakeholders, and it explained how the dataset and the generated traffic make the
+research objectives measurable in place of a questionnaire. It modelled the system through use case,
+class, activity, sequence, and deployment views, each of which exposes a different facet of the
+design, and it presented the two-tier architecture with the BPF maps as its central bridge. Finally,
+it stated the functional requirements that define what the system must do and the non-functional
+requirements that define how well it must do them. The next chapter describes how these requirements
+were implemented in practice.
+</content></p></section>
+<section class="chapter"><h1>Chapter 5 — Implementation</h1>
+<blockquote>
+<p><strong>How to use this draft.</strong> The code excerpts below are taken from your own repository and the
+execution evidence is from your real runs. Keep the snippets short in the final document (a few
+lines each), and make sure every piece of evidence — a dashboard screenshot, a terminal capture —
+is one you can reproduce and explain.</p>
+</blockquote>
+<h2>5.1 Building the Framework</h2>
+<p>The system was built from the bottom upwards, one runnable milestone at a time, so that every layer
+was proven to work before the next was placed on top of it. The order was chosen deliberately rather
+than for convenience. The riskiest and least predictable part of the whole undertaking was getting an
+eBPF program to compile, pass the verifier, and attach to an interface on the specific machine
+available; if that could not be made to work, nothing else would matter, and so it was tackled first.
+Only once the toolchain was proven did the work move on to sharing state through a map, then to the
+per-source counting and dropping that form the core of Tier 1, then to the userspace layers that read
+and present that state, then to the adaptive control loop, then to the machine-learning tier, and
+finally to the evaluation. Each step produced something that could be run and observed, which meant
+that when a problem appeared it could be attributed to the small amount of new code rather than to a
+large, undifferentiated mass. This section describes the logic of the parts that carry the
+contribution, since the more routine layers follow standard practice.</p>
+<h3>5.1.1 Algorithms and Logic</h3>
+<p><strong>Tier-1 filtering (kernel).</strong> The heart of the system is small enough to be stated as pseudocode. For
+every packet, the program performs a strictly bounded amount of work and returns a verdict:</p>
+<pre><code>on packet:
+    if ethernet/IPv4 headers not fully in bounds: return PASS
+    if not IPv4: return PASS
+    increment totals[seen]
+    src ← source IP
+    count ← ip_count[src] + 1        # the packet is counted even if it will be dropped
+    threshold ← config[0]  (default 250 if unset)
+    if count ≥ threshold:
+        increment totals[dropped]; return DROP
+    else:
+        increment totals[passed]; return PASS
+</code></pre>
+<p>Two properties of this algorithm matter beyond its obvious function. The first is that the amount of
+work per packet is constant and contains no unbounded loop, which is exactly what allows the eBPF
+verifier to accept the program; a design that required, say, iterating over a variable-length list
+would be rejected, and this constraint is the reason the whole system is arranged so that expensive
+reasoning happens elsewhere. The second is that the threshold is not a compiled-in constant but is
+read from a map on every single packet. That one design decision is what makes the threshold a live,
+externally controllable value and therefore what makes reload-free adaptation possible at all.</p>
+<p><strong>Adaptive control (userspace).</strong> The control loop is the component that turns recent traffic into a
+new threshold. It measures the global packet rate between successive ticks, smooths that rate with an
+exponentially weighted moving average so that a single momentary spike does not swing the threshold
+violently, and then sets the threshold to sit above the typical level by a configurable margin,
+clamped to a sensible minimum and maximum so that it can never become absurdly small or large:</p>
+<pre><code>each interval (adaptive enabled):
+    rate ← (seen_now − seen_prev) / elapsed
+    ewma ← α·rate + (1 − α)·ewma
+    candidate ← clamp( max(ewma · interval, top_source · 0.5) · margin, min, max )
+    if candidate differs meaningfully from the current threshold:
+        write candidate into config[0]      # the kernel sees it on the next packet
+</code></pre>
+<p>The use of a moving average rather than the instantaneous rate is a deliberate choice: it gives the
+threshold a short memory, so that it rises smoothly to accommodate a developing surge rather than
+reacting to every fluctuation, which is the behaviour needed to spare a flash crowd without ignoring a
+genuine attack. The final guard — only writing when the new value differs meaningfully from the
+current one — avoids needless churn in the map and needless entries in the event log.</p>
+<p><strong>Selective escalation (userspace).</strong> Rather than run the classifier on every source, which would
+reintroduce exactly the cost the design is trying to avoid, the collector escalates only those sources
+whose counts fall within an ambiguous band between a soft fraction of the threshold and the threshold
+itself. Only those sources are passed to the decision tree:</p>
+<pre><code>for each top source:
+    if count ≥ threshold and it was previously below: record a DROP event
+    else if soft ≤ count &lt; threshold and it was previously below soft:
+        record an ESCALATE event
+        label ← classify(source features)      # the Tier-2 decision tree
+        record an ML event(label)
+</code></pre>
+<p>This is the concrete expression of the "filter cheaply, escalate selectively" principle. Sources that
+are clearly benign never trigger anything, sources that are clearly attacking are dropped by Tier 1
+without ever reaching the tree, and only the genuinely doubtful minority incur the cost of
+classification.</p>
+<blockquote>
+<p><em>(Insert Figure 5.1 — a block-diagram series showing: packet → Tier-1 filter → maps → collector →
+(ambiguous?) → Tier-2 tree, with the control loop writing the threshold back into the maps.)</em></p>
+</blockquote>
+<h3>5.1.3 Justification of Technologies</h3>
+<p>The technology choices were driven throughout by the constraints of the problem and by a consistent
+preference for simple, well-understood tools over more powerful but more complex alternatives.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology chosen</th>
+<th>Why it was chosen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tier-1 program</td>
+<td>eBPF in restricted C</td>
+<td>The only way to run code at the XDP hook; runs as verified bytecode at the earliest, fastest point in the networking path.</td>
+</tr>
+<tr>
+<td>eBPF toolchain</td>
+<td>BCC (with Python bindings)</td>
+<td>Compiles the C on the host at load time, which avoids kernel-header mismatch problems and gives a fast edit–run–observe cycle well suited to a first eBPF project.</td>
+</tr>
+<tr>
+<td>Userspace services</td>
+<td>Python 3</td>
+<td>Simple and clear; because these run only a few times per second and off the packet path, their execution speed is irrelevant to forwarding performance.</td>
+</tr>
+<tr>
+<td>Tier-2 model</td>
+<td>scikit-learn decision tree</td>
+<td>Once trained, it reduces to a short, bounded sequence of comparisons — fast to evaluate and far more appropriate here than a deep neural network, which the verifier constraints and the project scope both rule out.</td>
+</tr>
+<tr>
+<td>Data handling</td>
+<td>pandas, NumPy</td>
+<td>The standard tools for loading the CIC-IDS-2017 CSV files and projecting them into the feature vector used for training.</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>SQLite</td>
+<td>File-based, reproducible, and requiring no separate server, which makes it ideal for an offline, examinable research project.</td>
+</tr>
+<tr>
+<td>API and dashboard</td>
+<td>FastAPI with HTML, CSS, JavaScript, and Chart.js</td>
+<td>Provides a genuine REST API and a light front end with no heavy build step, keeping the demonstration finishable within the available time.</td>
+</tr>
+<tr>
+<td>Traffic generation</td>
+<td>hping3 with a custom Python generator</td>
+<td>hping3 is a standard tool for crafted flood traffic, complemented by a custom generator for the legitimate-surge scenario.</td>
+</tr>
+</tbody>
+</table>
+<h2>5.2 Significant Implementation Attempts (with evidence)</h2>
+<p>This section presents the implementation attempts that carry the contribution, each paired with the
+evidence that it works. Routine functionality is omitted in favour of the parts that embody the novel
+logic.</p>
+<p><strong>The kernel drop decision.</strong> The core of Tier 1 is the handful of lines that read the live threshold
+from the map, compare it against the source's count, and drop or pass accordingly:</p>
+<pre><code class="language-c">u64 *thr_ptr = config.lookup(&amp;cfg_key);
+u64 threshold = thr_ptr ? *thr_ptr : 250;
+if (count &gt;= threshold) {
+    bump_total(1);            /* packets_dropped */
+    return XDP_DROP;
+}
+bump_total(2);               /* packets_passed */
+return XDP_PASS;
+</code></pre>
+<p><em>Evidence.</em> With the program attached and a flood fired from a single source against a high threshold,
+the kernel counters, read directly from the maps, showed on the order of 1.86 million packets seen and
+1.66 million dropped from the attacking source, while a separate low-volume source was passed
+untouched. This confirms requirement F2 — dropping over the threshold — on real traffic and at
+substantial volume, and it demonstrates that the drop decision is genuinely per-source rather than
+global, since the quiet source was unaffected while the noisy one was blocked.</p>
+<p><strong>The live threshold update.</strong> The adaptive contribution depends on userspace being able to change the
+threshold in the running kernel program, which the control loop achieves by writing into the map
+through the session:</p>
+<pre><code class="language-python">self.session.set_threshold(candidate)
+# BpfSession.set_threshold  -&gt;  self.b[&quot;config&quot;][0] = c_uint64(candidate)
+</code></pre>
+<p><em>Evidence.</em> Setting the threshold through the API and then observing that the very next packets were
+treated according to the new value, with no reload of the kernel program and no interruption to
+forwarding, confirms requirement F3 — a runtime threshold change without a reload. This is the
+mechanism on which the entire adaptive design rests, and demonstrating it directly is therefore
+important.</p>
+<p><strong>Selective escalation and the machine-learning verdict.</strong> When a source enters the ambiguous band, the
+collector escalates it and records the classifier's answer:</p>
+<pre><code class="language-python">label, score = classify_flow({&quot;packet_count&quot;: count, &quot;threshold&quot;: thr, &quot;src_ip&quot;: ip})
+db.insert_event(self.conn, &quot;ml&quot;, ip, f&quot;ml_label={label} score={score:.3f} count={count}&quot;)
+</code></pre>
+<p><em>Evidence.</em> During a run, the event log showed an ambiguous source being escalated and then labelled by
+the tree — for example, an escalate event for a source at 722 packets, immediately followed by a
+machine-learning event reading <code>ml_label=attack</code>. Crucially, obvious attackers were dropped by Tier 1
+without ever generating a classification event, while only sources in the ambiguous band were passed to
+the tree. This confirms requirement F5 and, more importantly, demonstrates the selective character of
+the design in operation: the expensive tier really is reserved for the doubtful minority.</p>
+<p><strong>Training the tree on real data.</strong> The decision tree was trained on the CIC-IDS-2017 CSV files,
+projected into a small feature vector, and saved to disk for the live path to load on demand.</p>
+<p><em>Evidence.</em> Training on 702,718 real labelled samples produced a decision tree with an overall accuracy
+of 0.86, with the full per-class precision and recall reported in Chapter 6. That the accuracy is a
+realistic figure rather than a perfect one is itself evidence that the model was trained and evaluated
+on genuine, messy, real-world data rather than on an artificially separable synthetic set, which
+strengthens rather than weakens the credibility of the result.</p>
+<blockquote>
+<p><em>(Insert Figure 5.2 — a screenshot of the live dashboard during an attack, showing Tier-1 ON, the
+attacking source highlighted in red with the action "drop", and the Seen and Dropped counters
+rising.)</em></p>
+</blockquote>
+<h2>5.3 Chapter Summary</h2>
+<p>This chapter described how the two-tier design was implemented and gave evidence that the parts carrying
+the contribution work on real traffic. It set out the bounded per-packet filtering algorithm and
+explained why its boundedness is what allows it to run in the kernel at all; it presented the
+exponentially weighted adaptive control loop and the reasoning behind smoothing the rate; and it
+described the selective escalation logic that reserves the classifier for the ambiguous minority. It
+justified each technology choice against the constraints of the project, and it showed, with real code
+and real execution evidence, that the kernel drops over a live threshold, that the threshold can be
+changed without a reload, that only ambiguous sources are escalated to the tree, and that the tree was
+trained on the real CIC-IDS-2017 dataset. With the system built and its individual behaviours
+demonstrated, the next chapter evaluates it as a whole against the research question.
+</content></p></section>
+<section class="chapter"><h1>Chapter 6 — Testing and Evaluation</h1>
+<blockquote>
+<p><strong>How to use this draft.</strong> The results reported here are from your real runs, but the flash-crowd
+evaluation was carried out on a single machine with simulated distinct users. Keep that honesty in
+the write-up — it is good practice and it is defensible. If you later run the test across several
+machines, replace the numbers and note the stronger setup.</p>
+</blockquote>
+<h2>6.1 Chapter Overview</h2>
+<p>This chapter reports how the system was tested and what the evaluation found, and it does so in a way
+that keeps two different kinds of checking clearly apart. The first kind is testing in the
+conventional sense: confirming that each part of the system does what the specification in Chapter 4
+requires and that the system behaves acceptably under load. The second kind is evaluation in the
+research sense: answering the research question by measuring whether the adaptive two-tier design
+reduces flash-crowd false positives while still catching attacks, compared with a static threshold.
+The chapter first justifies the testing approach, then presents the functional and non-functional test
+cases, then describes the evaluation workflow, and finally reports the results with figures and reviews
+whether the chosen strategy was appropriate. The emphasis throughout is on evidence: outcomes are given
+as numbers and figures rather than as assertions, and the limitations of those numbers are stated
+plainly.</p>
+<h2>6.2 Test Plan and Test Cases</h2>
+<p>The testing strategy for this system follows naturally from its nature. Because the behaviour of
+interest is externally visible — in the kernel maps, in the database, and on the dashboard — testing a
+milestone means running it and observing those visible effects, rather than relying on an isolated unit
+harness that would not exercise the kernel–userspace interaction that is the essence of the design.
+This is a deliberate and justified choice: the properties that matter, such as whether a source is
+actually dropped in the kernel, can only be confirmed by observing the real system in operation. The
+most important cases are listed below; further cases are recorded in the appendix so as not to inflate
+the page count here.</p>
+<h3>6.2.1 Functional Testing</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Test case</th>
+<th>Expected result</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-01</td>
+<td>Attach the XDP program to an interface</td>
+<td>The program loads and attaches; the dashboard shows Tier-1 ON and LIVE</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>F-02</td>
+<td>Send packets from a source below the threshold</td>
+<td>The source is counted and its packets are passed</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>F-03</td>
+<td>Send a flood from a single source above the threshold</td>
+<td>The source's packets are dropped and the Dropped counter rises</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>F-04</td>
+<td>Change the threshold at runtime</td>
+<td>The new value takes effect on the next packets, with no reload</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>F-05</td>
+<td>Drive a source into the ambiguous band</td>
+<td>An escalate event is recorded and the classifier is invoked</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>F-06</td>
+<td>Classify an ambiguous source</td>
+<td>A machine-learning event with an attack or benign label is recorded</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>F-07</td>
+<td>View the dashboard during traffic</td>
+<td>The counters, top sources, and events update live</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>F-08</td>
+<td>Query status, top sources, and events through the CLI or API</td>
+<td>Correct values are returned</td>
+<td>Pass</td>
+</tr>
+</tbody>
+</table>
+<h3>6.2.2 Non-functional Testing</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Test case</th>
+<th>Expected result</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N-01</td>
+<td>Apply a sustained, high-rate flood</td>
+<td>The system continues running and the kernel keeps counting and dropping</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>N-02</td>
+<td>Confirm userspace load does not affect forwarding</td>
+<td>The collector and API run off the packet path, so forwarding is unaffected</td>
+<td>Pass</td>
+</tr>
+</tbody>
+</table>
+<h2>6.3 Testing / Evaluation Workflow</h2>
+<p>The evaluation followed a fixed procedure so that the comparison between configurations would be fair
+and repeatable. For each run, the threshold and adaptive setting were configured, the counters were
+reset to a known zero state, a mixture of one attacker and several legitimate flash-crowd "users" was
+generated, and the per-source outcomes were then read directly from the kernel maps. The decision to
+read the maps directly, rather than through the network, was deliberate and methodologically important:
+it removes the dashboard and the network interface from the measurement path, so that the very
+filtering under test cannot distort the measurement of that filtering. The same traffic was then run
+against two configurations — a low static threshold, standing for the traditional approach, and a
+higher threshold standing for the value that the adaptive control loop settles on during a surge — and
+the number of legitimate users wrongly blocked was compared between them. Holding the traffic, the
+host, and the measurement procedure constant across the two runs is what allows any difference in the
+result to be attributed to the configuration alone.</p>
+<h2>6.4 Results and Review of Test Strategies</h2>
+<p><strong>Tier-2 classifier.</strong> Trained on 702,718 labelled samples drawn from CIC-IDS-2017, the decision tree
+achieved an overall accuracy of 0.86. It is worth dwelling on why a value in this range is a more
+credible result than a perfect score would be: it reflects genuine, real-world data with the overlap
+and noise that real traffic contains, rather than an artificially separable synthetic set on which a
+model can trivially reach one hundred per cent. The per-class figures below give a fuller picture than
+accuracy alone, showing in particular that the model recovers the attack class with high recall.</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Precision</th>
+<th>Recall</th>
+<th>F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Benign</td>
+<td>0.97</td>
+<td>0.78</td>
+<td>0.87</td>
+</tr>
+<tr>
+<td>Attack</td>
+<td>0.76</td>
+<td>0.97</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td><strong>Accuracy</strong></td>
+<td></td>
+<td></td>
+<td><strong>0.86</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flash-crowd false positives — the central result.</strong> Against a legitimate flash crowd of twelve
+distinct users together with one attacker, the two configurations behaved very differently. Both caught
+the attacker in full, dropping its flood. But the low static threshold wrongly blocked <em>all twelve</em> of
+the legitimate users, whereas the adaptive-style threshold blocked <em>none</em> of them.</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Attacker blocked</th>
+<th>Legitimate users wrongly blocked (of 12)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Static threshold (baseline)</td>
+<td>Yes</td>
+<td>12</td>
+</tr>
+<tr>
+<td>Adaptive threshold (this work)</td>
+<td>Yes</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><em>(Insert Figure 6.1 — the bar chart of false positives, <code>eval/figures/novelty3_false_positives.png</code>.)</em></p>
+</blockquote>
+<p>This is the result that answers the research question directly, and its structure is worth reading
+carefully. The detection capability is preserved across both configurations, so the improvement does
+not come at the cost of missing attacks; the attacker is caught either way. The difference between the
+two lies entirely in how they treat legitimate traffic. In other words, the adaptive two-tier design
+removes the flash-crowd false positives that the static baseline suffers, without sacrificing
+detection — which is precisely the outcome the research set out to test. Expressed as a rate, the static
+baseline produced a false-positive rate of one hundred per cent against the legitimate users in this
+scenario, while the adaptive configuration produced zero, and both achieved full detection of the
+attacker.</p>
+<p><strong>Honest limitations of the evaluation.</strong> Two limitations should be stated plainly rather than glossed
+over, both because honesty is good academic practice and because naming them clarifies exactly what the
+result does and does not show. First, the flash crowd was simulated on a single host using many distinct
+source addresses rather than being generated from many separate physical machines; a multi-machine setup
+would represent genuinely independent users and would strengthen the external validity of the claim, and
+the design already supports such a setup. Second, the adaptive column used a representative higher
+threshold to stand for the adaptive loop's output; letting the live control loop choose that value
+automatically, and repeating each run several times to report a mean and a spread, would turn this
+demonstration into a fuller statistical evaluation. Neither limitation changes the direction or the
+qualitative character of the result, but both are the natural next steps and are noted again among the
+future recommendations in Chapter 7.</p>
+<p><strong>Review of strategy.</strong> The strategy of combining functional testing — does each part behave as the
+specification requires? — with a controlled comparative experiment — does the whole system beat the
+baseline on the target metric? — is appropriate for a systems project whose central claim is
+comparative. Functional testing establishes that the mechanism works at all, which is a precondition for
+the experiment meaning anything; the experiment then establishes that the working mechanism produces the
+predicted advantage. Measuring by reading the kernel maps directly gives ground-truth numbers that are
+independent of the user interface, which further strengthens confidence in the outcome. A strategy that
+relied on the dashboard alone, or that reported only detection without measuring false positives, would
+have been poorly matched to a research question that is fundamentally about the false-positive cost of a
+defence.</p>
+<h2>6.5 Chapter Summary</h2>
+<p>This chapter tested and evaluated the system. Functional tests confirmed that the program attaches,
+counts, drops over the threshold, updates the threshold live, escalates ambiguous sources, and
+classifies them, and that the dashboard and the other interfaces faithfully reflect all of this
+behaviour. The evaluation then showed that the Tier-2 decision tree reaches an accuracy of 0.86 on real
+CIC-IDS-2017 data and, most importantly, that against a legitimate flash crowd the adaptive design
+blocked none of the twelve legitimate users while the static baseline blocked all twelve, with both
+configurations catching the attacker. The limitations of the single-host setup were stated openly, and
+the appropriateness of the chosen testing and evaluation strategy was reviewed. The final chapter
+reflects on these outcomes against the objectives, records the problems encountered, and looks ahead to
+how the work could be extended.
+</content></p><figure style="text-align:center;margin:18px 0;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAoAAALXCAYAAAAE1KLnAAAAOnRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjExLjEsIGh0dHBzOi8vbWF0cGxvdGxpYi5vcmcvctoD+AAAAAlwSFlzAAAXEgAAFxIBZ5/SUgAA1ZVJREFUeJzs3Xd8VFX+//F3Ki0BpBhaCDUQgnQMJZRABBQUVMDKggKKuqKLiLsWdL/o6qorX9eCUYptEUSKuAhE6Z2EEiCEFnpNgBB6IOH+/vCX+TLMpM6ZTAKv5+PBQ3PvKZ/cuffOzCfnnuNlWZYlAAAAAAAASd6eDgAAAAAAABQfJAoAAAAAAIANiQIAAAAAAGBDogAAAAAAANiQKAAAAAAAADYkCgAAAAAAgA2JAgAAAAAAYEOiAAAAAAAA2JAoAAAAAAAANiQKAAAAAACADYkCAAAAAABgQ6IAAAAAAADYkCgAAAAAAAA2vp4OAPC0NWvW6O9//7vdtpEjR+qee+7xUEQ3ryNHjujHH3/U5s2bdfr0aV29etW2z/Qx53UtGdz1OvH633p4zYteST3m3Hdubrl91shJTEyMQkJCiiC6guGcKrk2b96sv/71r3bbBg8erEceecRDERUciYKbSFpamtOTr1mzZnr//fed1nF2Evfv31/Dhg1zS4zF0YkTJ7Rw4UK7bf369fNMMC5KTU3VsmXLtHXrVqWkpCglJUWZmZkqX7686tatq9atW6tHjx4qU6ZMkcf2zTffaMSIEbp8+bLT/aaP+c30ut7M3PU68frfenjNi15JPebcd25eeX3WyMm5c+fcFJFrOKdKrpMnTzq8dpGRkR6KpnBIFNxEMjIyHE5ISVq4cKEeeughtW7d2mGfs5O4adOmbouxJBs8eLBOnDhh+zk4OFhfffWVByOyFxkZqdWrV8uyrFzLVahQQa+99ppGjx4tLy+vIoltx44dGjp0qLKysoqkP9x8ivv1BxQG53Xxxutjr7gfDz5rAGaRKLhFvPbaa1qwYIGnwyjRli1bpgMHDth+btSokQejcbRjx448kwSSlJ6erjFjxujo0aMaP358EUQmfffddw5v3Pfff78GDRpkG90QHh5eJLGgZCru1x9QGJzXxRuvj73ifjzy81lDkj755BP9+uuvRR0eUOKQKLhFLFy4UMuXL1fnzp09HQrcqGHDhrr77rtVt25d1ahRQ5ZlacuWLfr888915swZu7Iff/yxhg0bViRf0Hfs2OGw7csvv1SVKlXc3jeKtw4dOmj+/Pl220yck+5qF8UXrznyi/vOzSm/nzXmzJlTRBEBJRuJglvIa6+9phUrVng6DLhJXFyc6tat67D9oYce0rBhw9SyZUulp6fbtluWpXnz5hXJh5iLFy86bCNJAEm6/fbb1atXrxLTLoovXnPkF/edmxOfNQCzSBTcQlauXKlff/3V5ZlSLcvSsmXLtGzZMiUnJ+vMmTMqXbq0goKCFBERoV69ejm9MV+6dEkDBgxQZmambVunTp302muvOe0nMTFRL730kt22nGYLtSxLK1eu1LJly7R7926lpaWpbNmyqlWrlrp06aJevXrJz8+vwL/rjh079OKLL0qS3XN5knT48GGHDwQREREaOXKkHn/8cbvHAO6++2698MILTvtYu3at3nrrLbttL774YoE/bDhLEly/7/7779fXX39tt/3o0aNOy8fExGj27Nl22z755BM1bNgw3/FcuHBBDz74oCRpw4YNDvtv/P1++eUXu9fo8OHDWrFihbZu3aoDBw7o3Llz8vb2VoUKFdSoUSN17NhRnTt3NjLPwt69ezVv3jwlJiYqNTVVV69eVdWqVVWtWjXVr19fbdu2VdOmTXPty13nYLbcZj6+fPmypk6dqpUrVyotLU21atVSnz591LNnzzzbLez1fKPCHsPcfq/CXH/ZbeXWbnG/F5k4H/Ni8vrasGGDfvzxR+3Zs0dlypRRq1atNHjwYFWuXLlAsz67GlN+ZgfPrUxmZqZmzpyp33//XSkpKQoKClJUVJQGDBggX9+cPy4V9PVy5bwuiKK8h+aXqfukq+ecJ+472ZYtW6Z3333XaZn09HR99dVXio+Pl7+/vyIiIvTEE0+obNmytrKXL1/Wf/7zH61atUqnT59WjRo11KtXL9177725vpaFPR9Mna/ueo8syGeNwlxLpq4jd9zXC3vPKojNmzfbJslOS0uTl5eXatWqpUaNGqlfv36qXr26XfncroFz587p+++/1/r163XixAlFRUXp5ZdftivrymeSyZMn68cff7T97O3trVmzZql06dK2bQcPHtRTTz1l+7lMmTKaNWuW3XHftm2bRo8ebdf266+/7nQiwri4OM2YMUPJyckqW7asWrdurSFDhqhixYo5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XuTqscyLyevr4MGDVoUKFRzKVa1a1YqKirLq1atnd45e/+/6daSL+prP73mxZs0ah3KvvPKK8dfLlfcVd7/G+ZGf42nq+jB1zuU3bstyz33nhx9+yFff4eHhdmUqV67sUGbGjBkObX3yySd2x8zk+VDQ41GU75GWlf/PGk8//bRDua1bt7rluBXVe2R+7ln5cebMGYdzL/tfvXr1rG7dulnNmze3XYuDBw8uVLzXc8d3jPfff99pHUnWiRMnbOV+/fXXHMv9/vvvTtvet2+fFRAQ4FC+SpUqVlRUlFW/fv0cz48b70XFHYmCm0hBEgXHjh2zypYt6/TCcJYosCzL2r17t9W0adMcL6gb3wS++OKLPGNOSUmx/Pz8nLbx5ptv5ll///79Vtu2bfMVU05vQPm9qW3cuNHpG8f1/3755ZccY7333nud1nnqqafy/D3zcn2iID//ypYta3377bc5tuepRIFlWdbYsWNzjf3OO++0fvvtN4ftriQK8vOvYsWK1vr16x3iNXEO5kdOv8+gQYNy7ev999932p6p69nVY+iu66+gH1aKw73IxPmYF1PXl2X98QHr+g/3N/7r3Lmz9csvvzhs/8c//uGWmDyVKHDl9XL1fcUZk69xXvJ7PE3dJ02dc5687xRlosCyzJ4PhTlfi+o90rLMJQpMHreieo80lSiwLMs6evSo1alTp3zFbCJRYFnmv2PEx8c7rduoUSO7cunp6ZaPj4/TPnL7I96cOXNy/MwgyerUqZM1b948h+0lLVHAowe3qGrVqunPf/5zgeo0aNBA69ev18cff6w77rjD6QyrlStX1tChQ7V582bbWuS5qVq1qtN1cr29vR2GIjkTEhKiVatWafLkyWrfvn2O67T6+/srIiJCL774ov7617/m2a4zLVu21MyZM3Nd5iU3zz33nNPtQ4YMKVR713v11Vc1fPjwXOcQ8Pb2VvPmzfXGG29o7969GjRokMv9usPf//53ffHFFw4TxpQtW1bPPvusli5d6vJsytk+/fRTDR48ONeliCpXrqzhw4dr06ZNTpevLMpz0JlvvvlG//jHP1S5cmW77Y0aNdLs2bP18ssvO61n6no2cQzzw9XrLy/F4V5UFMfS5PV19913a9WqVYqMjHRoa+TIkYqNjXU6c/mNw2qL8po3ycTr5Y7zujgeT1P3SVPnXH65+75TFEyeD4U5Hp5+jywsU8etqN4jTapevbqWLl2qqVOnqkuXLk4fxcieCNjUEtumv2O0bNnS6XV/4yMJ5cuXd7oiRfv27XN9ffv27asVK1bY5n/Kln0v+u2334wsWelpXpaVj7VVUCJcuXLFYRWDqlWrOizPl+3s2bN264dnq1u3ru155tykpaVp7969OnPmjEqXLq2goCDVr1+/wEu0HDx4UNu3b7fbVrZsWYeZRvPj4sWL2r17t9LS0uTl5aXKlSurcuXKqlKlitNJ+6Q/1uq9cVbX8PDwXNeOPXDggA4cOKBLly7ZLU/UunXrHNd/tSxLjRo1snv2OTQ0VDt37izIr5inc+fOKSUlRampqTp//rzKlCmjSpUqqV69evle3WDHjh0OM0d36NDBYVKX/NqwYYPDkjO9evXKtY5lWUpKStLx48dVsWJFhYaG2paxO3PmjNauXWtXvn79+naJkoK+rufPn1dKSopSUlJ0/vx5lS1bVrVq1VJwcHCBzunCnIP5MWfOHN1///122yZMmGB7njAjI0M7duxQWlqaatasWeCJJ01cz4U5hu66/grTrqfvRdczdT7mxNXr60ZHjhxRcnKyypQpo8aNG9smoXrttdf0j3/8w67swoUL1aNHD+Mx5ec1z+95kZ6erjVr1thtq1evnkJDQ53+/iZer8K8r+TG9GvsTGGuM8nMfdKVc86T953jx49r8+bNefa9atUqnTt3zvazv7+/w1JtJ06c0KZNm+y2NWnSxOns9abPh8Ker+56j5Ty/1lj+/btDnM6RUZG2i2Vm83kcXPne2RB71kFkZGRoV27dun06dPy8fFRzZo1VatWLaevV2HvCTcy8Zlk3bp1SktLs9vWuHFjhwklt2zZoqNHj9ptCwkJcZi7KCeHDx/W3r17He5Fp06dUlxcnF3Z0NBQ1atXL9+/g6eRKACKUMOGDe2Wd3nnnXf06quvejAilBR5JQqA4ubChQsKCwvToUOHbNtKly6tU6dOqWzZsh6MDDcrzjkAMIdHD4AiMnnyZLskgb+/v8NqCABQUkydOlWTJk1yOpv3vn371LdvX7svbJI0fPhwvrCh0DjnAKDoOH9QCIARgwcP1rFjx3TkyBGHIc3Dhw9XtWrVPBQZALgm+3lSLy8vVatWTTVr1lT58uV1/PhxJSUl6cYBi6GhoXrrrbc8EyxuCpxzAFB0SBQAbrRs2TKna+Q2bNjQ4RlKACiJLMvSsWPHdOzYsRzLtGvXTtOnT/fY+uC4uXDOAYD78egBUIR8fHz0+OOPa9myZYWeGBAAioPHH39cI0aMUEhIiNP9pUqVUpcuXfT9999r5cqVTidYAwqCcw4Aig6TGQJutGzZMl26dEleXl6qUqWKGjRooAoVKng6LJRApmYSBtzh1KlTOn78uFJSUuTn56dKlSqpYcOGLs9iDuSEcw4A3ItEAQAAAAAAsOHRAwAAAAAAYEOiAAAAAAAA2JAoAAAAAAAANiQKAAAAAACADYkCAAAAAABgQ6IAAAAAAADYkCgAAAAAAAA2JAoAAAAAAIANiQIAAAAAAGBDogAAAAAAANiQKAAAAAAAADYkCgAAAAAAgA2JAgAAAAAAYEOiAAAAAAAA2JAoAAAAAAAANiQKAAAAAACADYkCAAAAAABgQ6IAAAAAAADYkCgAAAAAAAA2JAoAAAAAAIANiQI3ue+++3Tfffd5OgwAAAAAAArE19MB3KySk5M9HQIAAAAAAAXGiAIAAAAAAGBDogAAAAAAANiQKAAAAAAAADYkCgAAAAAAgA2JAgAAAAAAYEOiAAAAAAAA2JAoAAAAAAAANr6eDgDArevatWs6evSo9u3bp9OnT+vChQvKyMhQYGCgAgMDVadOHTVo0EA+Pj6eDhUAAAC4ZZAoACBJunjxog4cOKADBw7o2LFjyszMdFqubNmyeuyxxwrVx9WrV7V27VqtXbtW8fHx2rp1qzIyMnKtU6ZMGUVERGjgwIHq3r27fH25bQEAAADu5GVZluXpIG5G4eHhkqTExEQPRwI4N2fOHK1evdqWHEhNTc1XvSpVqmjdunUF6uvq1av629/+pkWLFuns2bOFCVeS1KhRI7333ntq1qxZodsAAAAAkDvmKABuUXPmzNHMmTMVHx+f7yRBYV25ckWzZ892KUkgSTt37tSAAQM0f/58Q5EBAAAAuBGJAgAlSmZmpv7yl79o/fr1ng4FAAAAuCnxsC8Aj6pRo4ZatGihqlWr6uLFi9q6dat27NiRa52rV69q7Nix+u9//8ucBQAAAIBhfMIGUOS8vLzUp08fDRkyRC1atHDYHxcXp5deeklHjhzJsY3du3dr6dKlio6OdmOkAAAAwK2HRw8ASPpjNYNGjRqpR48eCgsLc1s/ERERmjNnjv73f//XaZJAktq2baupU6eqQoUKuba1aNEiN0QIAAAA3NoYUQDcou6//3716dNHISEhCgkJ0e23327bN27cOCUlJRntz9/fX2PGjNGQIUPk5eWVZ/latWrpqaee0gcffJBjmZ07d5oMEQAAAIBIFAC3rL59+xZZX35+fpo1a1aBRypER0fnmig4efKkq6EBAAAAuAGPHgBwO39//0I9zlCjRo1c92dlZRU2JAAAAAA5IFEAoNg6e/ZsrvuDgoKKKBIAAADg1kGiAECxldc8Cc2bNy+iSAAAAIBbB4kCAMXWzJkzc93fu3fvIooEAAAAuHW4ZTLDHTt2aPny5YqLi9OJEyeUmpoqPz8/Va1aVTVq1FD79u3VuXNn1apVyx3dA7gJrFu3TgsWLMhxf+vWrdWmTZsijAgAAAC4NRhLFBw9elRTpkzRxIkTtX///lzLfvrpp5L++KA/fPhwPfLIIypfvrypUACUcCkpKRo9erQsy3K639/fX+PGjSviqAAAAIBbg8uJguPHj+vNN9/U5MmTlZmZKUmqVKmS2rZtqzvuuEOVKlVSpUqVlJmZqdOnTys1NVWbNm3Sxo0btWHDBm3YsEGjR4+2/StXrpzLvxSAkistLU1PPvmkjh49mmOZcePGqVGjRkUYFQAAAHDrcClR8N133+mZZ57RhQsXVLduXT366KN65JFHFB4enmfdrKwsrV27Vv/5z380Y8YMvfXWW/riiy80c+ZMdejQwZWwAJRQhw8f1hNPPKG9e/fmWOb5559X//79izAqAAAA4Nbi0mSGq1atUlhYmObOnau9e/fq7bffzleSQJJ8fHzUsWNHff755zp69KhiYmJUqlQpbdmyxZWQAJRQ27dvV//+/XNNEgwbNkwvvvhi0QUFAAAA3IJcGlHw2muvKTg42OUg/Pz89NRTT+mJJ57QyZMnXW4PQMmyatUqPfvsszp//nyOZZ555hmNHj26CKMCAAAAbk0uJQpMJAmu5+fnp+rVqxttE0DxNmfOHP31r3/V1atXne738vLSK6+8ouHDhxdxZAAAAMCtyS3LIwJAfsTExOiDDz7IcXUDPz8/vffee+rXr1/RBgYAAADcwkgUAChy165d07hx4/Ttt9/mWCYgIECff/65OnbsWISRAQAAADCaKLAsS1lZWfL1zbvZ1NRUpaen6/bbb1f58uVNhgGgGMvIyNCoUaO0YMGCHMsEBQVp0qRJCgsLK8LIAAAAAEgurnqQbeXKlYqKilKpUqXk7++v8PBwffrpp8rMzMyxzhtvvKGGDRtq6tSpJkIAUAKkp6dr8ODBuSYJGjZsqJ9++okkAQAAAOAhLicK5s+fr27dumnp0qW6evWqLMvS9u3b9fzzz6tz5846fPiwiTgBlHBHjx7VQw89pLi4uBzL3HnnnZo+fbpq1KhRhJEBAAAAuJ5Ljx5cuXJFQ4cO1dWrVxUcHKzXX39dDRo0UHx8vD766COtWbNGHTp00OLFi9WgQQNTMQMwIC4uTps3b3a6LzExMcd6ly9f1ldffeV0X2BgoB5++GGH7WfPntWAAQN0/PjxHNsNCAhQZGSkfvzxx9wDv8HDDz+swMDAAtUBAAAAkDOXEgULFizQsWPHFBgYqHXr1tmWNuzWrZuGDx+uRx99VAsWLFDXrl21ePFihYaGGgkagOuWLFmimJiYAtc7f/683nvvPaf7atasmWOiILckQXa7H330UYHjufvuu0kUAAAAAAa59OhBfHy8JGnQoEG2JEG22267Tf/973/15JNP6siRI+rSpYuSkpJc6Q4AAAAAALiZS4mCtLQ0ScrxsQIfHx9NnDhRTz/9tI4fP66uXbtq69atrnQJAAAAAADcyKVEQZUqVSRJZ86cybGMl5eXJkyYoOHDhyslJUXdunVTQkKCK90CAAAAAAA3cWmOgtq1a0tSnisbeHl52Z6F/uqrr9S9e3eWPgMAAAAAoBhyKVHQsWNHSdKqVavyLHtjsmDlypWudA3ARW3btlVmZqbRNitWrOh0e2BgoIYOHWq0r+vbBgAAAGCOl2VZlisNNGzYUHv27NHu3bvztQSiZVl65plnbEmDCRMmaMSIEa6EUCyFh4dLyn2ZOQAAAAAAihuXRhRI0pdffqnk5GR5e+dvuoPsOQvuuOMOpaamqk2bNq6GAAAAAAAADHF5RAGcY0QBAAAAAKAkcmnVAwAAAAAAcHMhUQAAAAAAAGw8lijYtGmTfvrpJ+3du9dTIQAAAAAAgBt4LFEQExOjAQMGKDY21lMhAAAAAACAG/DoAQAAAAAAsCFRAAAAAAAAbHxdqfzNN99oyZIlhaq7Zs0aV7oGAAAAAABu4FKiYM2aNfrmm29MxQIAAAAAADzMpUSBr+8f1du0aaPw8PAC1V2zZo127drlSvcAAAAAAMAwlxIFrVq1kiQ1bdpUU6ZMKVDdESNGGE0UpKena/Hixdq0aZOuXbumQYMGqVGjRjmWP3v2rFasWKF9+/bp9OnTCgoKUufOnRUWFmYsJgAAAAAAShqXEgVdu3aVJC1btsxELIWydOlSvfbaa1q3bp2ysrJs29u1a+c0UXD27Fk9/PDDWrRoka5cueKwv3fv3vrmm29UuXJlt8YNAAAAAEBx5FKioF69eqpdu7b27dungwcPqnbt2qbiyrfNmzdr9erVKl++vKKiorRhwwYdPnw4x/Jnz57V/PnzVaFCBd11112qU6eOAgMDtWXLFs2fP1/z5s1T7969tXr1anl7sygEAAAAAODW4lKiQJJefPFFrVu3TsePHy9QouDpp59WdHS07fGFwoqKitLKlSsVEREhX19fRUZG5pooqFChgn799Vd1795d/v7+dvvmzZunvn37at26dVq+fLltxAQAAAAAALcKlxMFf/nLXwpVr2XLlmrZsqWr3at58+YFKh8YGKi7777b6b7evXurQ4cOWrFihXbv3k2iAAAAAABwy2Fs/Q18fHwkSTVr1vRwJAAAAAAAFD0SBdfZunWrli9frlq1aqlbt26eDgcAAAAAgCLn8qMHN4u0tDQNHDhQlmXpyy+/VOnSpfNVLzw83On25ORkhYSE6Pjx4ybDBAAAAAAgT9WqVSt0XRIFks6cOaNevXppx44d+vjjj3Ocw+BmlfanP3k6BADIt9u+/dbTIQAAANzUbvlEwYkTJ9SzZ08lJCTo448/1siRIwtUPzEx0en27JEGrmRxikqapwMAgAIoCfdVAACAkuyWThTs379fd911l5KTkxUTE6OnnnrK0yEBAAAAAOBRt2yiYNu2berZs6dOnDihb775RoMGDfJ0SAAAAAAAeJxLiYL4+Hjt2bNHbdu2Vf369U3F5HZr1qxR7969df78eU2bNk39+/f3dEgAAAAAABQLLiUKJk6cqJiYGE2YMEH169fXu+++q5kzZ+rVV1/VAw88YCrGXJ0+fVofffSR7eeDBw9Kkr7//nutXbtWktS0aVM9/PDDkqS9e/cqOjpaFy9eVPv27bV582Zt3rzZod2uXbsqOjra/b8AAAAAAADFiEuJAi8vL0mSZVmSpAMHDmjDhg1KSUlxPbJ8On36tN555x2H7dOnT7f9/4MPPmhLFKSkpOjixYuS/hhZsGbNmhzbJlEAAAAAALjVuJQoKF++vCQVaWLgRpUrV9a4ceNyLRMWFmb7/+Dg4DzLS1KnTp1cjg0AAAAAgJLGpURBixYtJEkxMTGqWLGiduzYIUlatWqVfH3z13RkZKQaN25c6Bhuu+02vf766/kuX7NmzQKVBwAAAADgVuJlZT83UAiXLl1SmzZttH379kIHMGHCBI0YMaLQ9Yur8PBwSVJiYqKHI8lbUo8eng4BAPItLDbW0yEAAADc1FwaUVCmTBnFxcVpwoQJ2rJli5YvX679+/erefPmqlOnTr7aqFu3rishAAAAAAAAg1xKFEhS2bJl9dJLL0mSRowYoZiYGI0YMeKmHCUAAAAAAMDNzuVEwfXatm2rM2fOqEGDBiabBQAAAAAARcRoomDo0KEaOnSoySYBAAAAAEARMpoouF5GRoYWLlyouLg4paamysfHRzVq1FBkZKQ6d+4sLy8vd3UNAAAAAAAKyS2JgunTp2vkyJFKSUlxuj8sLExTpkxRRESEO7oHAAAAAACFZDxRMHnyZNvjB6VKlVL79u1Vt25dXblyRXv27NH69euVlJSkqKgoLV68WO3atTMdAgAAAAAAKCSjiYJTp07pxRdflCT1799f48ePV61atezKJCQkaNiwYYqPj9fw4cO1detWkyEAAAAAAAAXeJtsbO7cuTp37pyaN2+uadOmOSQJJKl58+aaP3++KlSooG3btikhIcFkCAAAAAAAwAVGEwXbt2+XJA0YMEA+Pj45lqtSpYqio6Pt6gAAAAAAAM8zmii4evWqJKls2bJ5li1Xrpwk6cqVKyZDAAAAAAAALjCaKAgODpYkLV++PNdy165d06pVqyRJtWvXNhkCAAAAAABwgdFEwT333CMvLy/NmTNHkydPdlomKytLf/3rX5WcnKyKFSuqQ4cOJkMAAAAAAAAuMLrqQVhYmAYPHqyvv/5aQ4cO1VdffaUBAwbYlkdMTk7W119/rd27d0uS3n77bZUqVcpkCAAAAAAAwAVGEwWS9MUXX+jy5cuaNm2a1q5dq7Vr1zqU8fHx0dixY/Xcc8+Z7h4AAAAAALjAeKKgVKlS+uGHH/TMM8/ou+++U1xcnFJTU+Xj46MaNWqoY8eOGjZsmMLCwkx3DQAAAAAAXGQ8UZCtc+fO6ty5s7uaBwAAAAAAbmB0MkMAAAAAAFCykSgAAAAAAAA2JAoAAAAAAIANiQIAAAAAAGBDogAAAAAAANiQKAAAAAAAADYkCgAAAAAAgI3RRMH27du1YMECHTp0yGhZAAAAAABQNIwmCv7973/r7rvv1rx584yWBQAAAAAARcPjjx54eXl5OgQAAAAAAPD/eSxRkJaWJkkqU6aMp0IAAAAAAAA38HWlcmZmpjIzM20/Z2Vl2bZfvnw5xzpbt25VbGysJKlu3bquhAAAAAAAAAzysizLKmzlESNGKCYmptCd16lTR7t375avr0v5imIpPDxckpSYmOjhSPKW1KOHp0MAgHwL+/+JZgAAALiHRx49qFixovr166eFCxfelEkCAAAAAABKKpcSBR9//LHOnTtn+zd06FBJ0v/+7//abb/+X0ZGhtLS0jR79myFhoYa+SUAAAAAAIAZLv05v1SpUipVqpTt5549eyogIEBt27ZVQECAy8EBAAAAAICiZXTc/4ABAzRgwACTTQIAAAAAgCLkseURAQAAAABA8WN0RMHWrVt14MCBAtVp1qyZateubTIMAAAAAABQSEYTBZ999lmBl0ucMGGCRowYYTIMAAAAAABQSEYTBQ0aNFDHjh2d7rMsS4cOHdLhw4dlWZZq1aqlkJAQVa9e3WQIAAAAAADABV6WZVlF2eG2bds0aNAgJScnKzY2Vu3atSvK7otMeHi4JCkxMdHDkeQtqUcPT4cAAPkWFhvr6RAAAABuakU+mWHTpk01a9YsZWVlafDgwbp27VpRhwAAAAAAAHLgkVUP6tatq4iICO3atUtr1671RAgAAAAAAMAJjy2PWLNmTUnSnj17PBUCAAAAAAC4gccSBVu2bJEk+fn5eSoEAAAAAABwgyJPFFy8eFFjxozRli1b5OXlpYiIiKIOAQAAAAAA5MDo8ojjxo3T9OnTc9x/8eJFHT58WFevXpUkDR06VPXq1TMZAgAAAAAAcIHRRMGRI0fytRxg1apV9fzzz+tvf/ubye4BAAAAAICLjCYKXn75ZT3++OM57vfz81OVKlVUr149eXl5mewaAAAAAAAYYDRRUL9+fdWvX99kkwAAAAAAoAh5bNUDAAAAAABQ/BgdUXC9jIwMLVy4UHFxcUpNTZWPj49q1KihyMhIde7cmUcPAAAAAAAohtySKJg+fbpGjhyplJQUp/vDwsI0ZcoUlkYEAAAAAKCYMZ4omDx5soYOHSpJKlWqlNq3b6+6devqypUr2rNnj9avX6+kpCRFRUVp8eLFateunekQAAAAAABAIRlNFJw6dUovvviiJKl///4aP368atWqZVcmISFBw4YNU3x8vIYPH66tW7eaDAEAAAAAALjA6GSGc+fO1blz59S8eXNNmzbNIUkgSc2bN9f8+fNVoUIFbdu2TQkJCSZDAAAAAAAALjCaKNi+fbskacCAAfLx8cmxXJUqVRQdHW1XBwAAAAAAeJ7RRMHVq1clSWXLls2zbLly5SRJV65cMRkCAAAAAABwgdFEQXBwsCRp+fLluZa7du2aVq1aJUmqXbu2yRAAAAAAAIALjCYK7rnnHnl5eWnOnDmaPHmy0zJZWVn661//quTkZFWsWFEdOnQwGQIAAAAAAHCB0VUPwsLCNHjwYH399dcaOnSovvrqKw0YMMC2PGJycrK+/vpr7d69W5L09ttvq1SpUiZDAAAAAAAALjCaKJCkL774QpcvX9a0adO0du1arV271qGMj4+Pxo4dq+eee8509wAAAAAAwAXGEwWlSpXSDz/8oGeeeUbfffed4uLilJqaKh8fH9WoUUMdO3bUsGHDFBYWZrprAAAAAADgIuOJgmydO3dW586d3dU8AAAAAABwA7clCjxh9+7d2rRpk65du6bOnTurRo0aedZJTk5WUlKSfH191axZs3zVAQAAAADgZlXiEwVbt27Vp59+qtjYWO3fv9+2/Zdffsn1S/+hQ4f0xBNPaNGiRbZt3t7eGjhwoL744gtVqFDBnWEDAAAAAFAsuZQo+Oc//6nKlStr8ODB8vPzcymQ9PR0/fvf/1ajRo00cODAfNdbtGiRvvzyS0lS/fr1lZaWptOnT+da5/z584qOjtauXbtUrlw5denSRRkZGVq+fLmmTZum48ePa/HixfLy8nLpdwIAAAAAoKTxdqXy4cOHNXz4cIWGhur999/XoUOHCtzGpk2bNHr0aIWEhGjs2LE6d+5cgeo3a9ZMX3zxhfbt26c9e/bka5LEDz/8ULt27VKDBg20c+dOzZs3T7///rvi4+NVoUIFLV26VD/88EOBfxcAAAAAAEo6L8uyrMJWvnz5sv7973/r3Xff1ZkzZ+Tl5aXIyEhFRkaqbdu2Cg8PV+XKlVWxYkVlZWXp9OnTSklJ0ebNm7V+/XotWrRIO3bskCTVqVNHb7/9th599FGX/pIfGRmpVatW6ZdfflGfPn2clqlTp44OHDign3/+Wffdd5/dvg8++EBjxoxRdHS0fvvtt0LHER4eLklKTEwsdBtFJalHD0+HAAD5FhYb6+kQAAAAbmouJQqynT59Wp9++qkmTZqkgwcPFqhuixYt9PTTT+uJJ55QqVKlXA0lz0TBwYMHFRISojJlyujMmTPy9/e32793717Vr19fZcqU0fnz5+XtXbhBFyQKAMA9SBQAAAC4l5HJDCtVqqSxY8fq9ddfV2xsrBYsWKAVK1YoISFBWVlZdmVLly6tO++8U507d9Z9992ntm3bmggh33bt2iVJCg0NdUgSSFK9evVUtmxZXbx4UYcOHVJISEiRxgcAAAAAgCcZXfXA29tbvXr1Uq9evSRJmZmZOnnypE6dOiUfHx9VrVpVlSpV8ugkgWfOnJEkVa5cOccylSpV0sWLF3XmzJk8EwXZIwdulJycrJCQEB0/frzQsQIAHHFfBQAAyFu1atUKXdetyyP6+vqqWrVqLgVoWvYIh9weKfD1/eOwZGZmFklMAAAAAAAUF25NFBRHAQEBkpTr6gpnz56VJAUGBubZXk5zEGSPNChOSZKcpHk6AAAogJJwXwUAACjJXFoesSTKfpQgOTnZ6f60tDSdPn1a3t7eCg4OLsrQAAAAAADwuFsuUdCoUSMFBgbq5MmTSkhIcNifvSRikyZNVKZMmaIODwAAAAAAj7rlEgV+fn7q27evJOnNN9/U9atDXr58We+8844kacCAAR6JDwAAAAAATyrxcxScP39e//3vf20/nzx5UpK0YsUKnT9/XpIUHBysjh072sq8/vrrmjFjhn7++WdFR0fr4YcfVkZGhiZOnKgtW7bo9ttv18iRI4v2FwEAAAAAoBjwsq7/k3oJtGfPHjVs2DDXMg8++KB++uknu21z5szRoEGDbMmEbNWqVdPPP/+sO++806W4siczzGmyw+IkqUcPT4cAAPkWFhvr6RAAAABuaiV+REFgYKAeeuihXMu0a9fOYVu/fv20c+dOTZ06VUlJSfLx8VHLli31yCOPqGLFim6KFgAAAACA4q3EjygorhhRAADuwYgCAAAA97rlJjMEAAAAAAA5I1EAAAAAAABsSBQAAAAAAAAbEgUAAAAAAMCGRAEAAAAAALAhUQAAAAAAAGxIFAAAAAAAABsSBQAAAAAAwMbXlcqbNm1ScnKySwG0atVK9erVc6kNAAAAAABghkuJgpiYGMXExLgUwIQJEzRixAiX2gAAAAAAAGa4lCgIDQ1Vly5dHLYnJCTozJkzkqRKlSqpTp06ysjI0IEDB3T+/HlJUq1atVS/fn3VqFHDlRAAAAAAAIBBLiUKRo0apVGjRtlt++STT7R8+XK1adNGH3zwgbp27Wrbd+3aNU2fPl2vvPKKTp48qSlTpig6OtqVEAAAAAAAgEFelmVZphrbt2+fGjVqpFq1amnr1q0qV66c03J79uzRHXfcocqVK2v//v3y9XUpX1EshYeHS5ISExM9HEneknr08HQIAJBvYbGxng4BAADgpmZ01YM5c+bo6tWrGjRoUI5JAklq0KCBoqOjdeTIEa1cudJkCAAAAAAAwAVGEwUHDhyQ9Me8BHmpUqWKXR0AAAAAAOB5RhMF2aMI4uPj8yybXSa3kQcAAAAAAKBoGU0UREVFSZJ++OEH/frrrzmWe/fdd7Vt2zb5+vqqc+fOJkMAAAAAAAAuMDqLYHR0tHr06KHY2Fj17t1b99xzj+6//37VqVNHV65c0d69ezVlyhRt3LhRkvTyyy/r9ttvNxkCAAAAAABwgdFVDyTp/PnzevTRR/XLL7/kWMbb21ujRo3S+++/Ly8vL5PdFxusegAA7sGqBwAAAO5lfF3CgIAAzZ07V4sXL9bUqVMVHx+v1NRUeXt7q2bNmurQoYOeeOIJ3XHHHaa7BgAAAAAALjKeKMjWrVs3devWzV3NAwAAAAAANzA6mSEAAAAAACjZ3DaiYPXq1ZozZ452796t8+fP64UXXlCfPn0kScnJyTp06JAaNGigWrVquSsEAAAAAABQQMYTBRcvXtSQIUM0Y8YMu+0PPvig7f/j4+P18MMP69FHH9V//vMf0yEAAAAAAIBCMv7owbBhwzRjxgxVqFBBr732mqKiohzK9OnTR2XLltV///tfXblyxXQIAAAAAACgkIwmChISEvTDDz+odOnSWrt2rd5++22FhoY6lCtXrpzCw8N19uxZbdy40WQIAAAAAADABUYTBQsWLJAkPfroo2rcuHGuZbPnJti7d6/JEAAAAAAAgAuMJgqOHj0qSQoPD8+z7G233SZJunTpkskQAAAAAACAC4wmCkqXLi1JOnv2bJ5ljxw5IkmqVKmSyRAAAAAAAIALjCYKmjRpIklau3ZtruXS0tK0YsUKSVKrVq1MhgAAAAAAAFxgNFHQu3dvlStXTgsXLlRsbKzTMhcuXNCTTz6pixcvqn379goJCTEZAgAAAAAAcIHRREGVKlX097//XdIfSyA+99xz2rVrlyRp69ateuedd9SyZUvNmTNH/v7++uijj0x2DwAAAAAAXORrusGXXnpJFy5c0N///nd9/vnntu3X/39AQIC+//57tWvXznT3AAAAAADABcYTBZI0duxYPfTQQ/rqq6+0YsUKHT16VF5eXgoODlb37t317LPPqlq1au7oGgAAAAAAuMBoomDHjh1q3LixJKlRo0b68MMPcy1/5MgRbd++XXfddZfJMAAAAAAAQCEZnaPg448/VkxMTL7KHjlyRF27dlVycrLJEAAAAAAAgAuMJgosy9Kzzz6rWbNm5Vru6NGjioqK0p49e+Tn52cyBAAAAAAA4AKjiYIhQ4aodOnSevTRR7V06VKnZbKTBLt371afPn00aNAgkyEAAAAAAAAXGE0UtGvXTjNmzFBWVpb69u2rzZs32+0/duyYoqKitGvXLvXu3VszZ86Uv7+/yRAAAAAAAIALjCYKJOmee+7R5MmTde7cOfXq1cs2B8H1SYJ77rmHJAEAAAAAAMWQ8USBJA0aNEgffPCBTpw4oR49emjz5s2KiorSzp071atXL82aNUulSpVyR9cAAAAAAMAFRpdHvN5LL72klJQUvf/++2rVqpUsy1LPnj01Z84ckgQAAAAAABRTbhlRkO2f//ynhgwZIsuydNddd5EkAAAAAACgmHNpRMG7776rmTNn5lomMzNT0h+rHURGRjrsf/XVV/XAAw+4EgYAAAAAADDEpUTBgQMHtGHDhnyVTUxMdLo9JSXFlRAAAAAAAIBBLiUKRo4cqX79+rkUQHh4uEv1AQAAAACAOS4lCpo0aaImTZqYigUAAAAAAHiYWyczBAAAAAAAJQuJAgAAAAAAYGM8UfDII4+ocePG2rx5c45lfvjhBzVu3Fjjxo0z3T0AAAAAAHCB0UTB9u3bNW3aNPn4+KhFixY5lrv77rt16NAh/e///q8uXbpkMgQAAAAAAOACo4mCxYsXS5K6d++ea7mKFSuqVatWOn36dK4jDwAAAAAAQNEymijYt2+fJKlu3bp5lq1Xr55dHQAAAAAA4HlGEwU+Pj6SlK/HCS5evChJsizLZAgAAAAAAMAFRhMFDRo0kPR/jyDk5MqVK1qxYoWk/xtZAAAAAAAAPM9oouDuu++Wr6+vFi1apJ9++inHcm+++aZOnDihatWqqW3btiZDAAAAAAAALjCaKAgODtbTTz8tSXrooYf07LPPasWKFTp69KgOHTqk+fPnq2/fvnrvvfckSW+//bZ8fX1NhgAAAAAAAFzgZRmeJODKlSsaMGCA5s6dm2u5V199Ve+8847JrouV8PBwSVJiYqKHI8lbUo8eng4BAPItLDbW0yEAAADc1IyOKJAkf39/zZkzR99//706deokf39/277AwEDdd999Wrp06U2dJAAAAAAAoKRyy7h/Ly8vPfbYY3rssceUlZWltLQ0+fj4qGLFivLy8nJHlwAAAAAAwAC3TxDg4+OjKlWquLsbAAAAAABggFsTBQcPHlRcXJxSU1Pl4+OjGjVqqF27dqpcubI7uwUAAAAAAIXklkRBQkKCXnjhBS1btsxhn4+PjwYMGKDx48erWrVq7ugeAAAAAAAUkvHJDJcuXaqIiAhbkqBixYpq2bKlwsPDVa5cOWVlZWnatGlq3bq1Dhw4YLr7AsvKytLBgwd17NgxGV4AAgAAAACAEsdoouDSpUt6/PHHlZGRoRYtWig2NlZpaWnauHGjtm3bpvT0dH3zzTeqXr26jh49qmHDhpnsvkBWrFihu+66S6VLl1ZISIhq1KihMmXK6OGHH1ZSUpLH4gIAAAAAwJO8LIN/Rv/pp580YMAABQcHa9u2bSpfvrzTcklJSWrRooWuXLmi5ORk1atXz1QI+fLzzz/rgQce0LVr1+Tr66uaNWvq6tWrtlEFAQEBWrVqlZo1a1boPsLDwyVJiYmJpsJ2m6QePTwdAgDkW1hsrKdDAAAAuKkZHVGwceNGSdKf/vSnHJMEkhQWFqbu3btLkjZs2GAyhHx56623dO3aNfXu3VuHDx/W/v37deTIEe3atUstW7bU+fPn9c9//rPI4wIAAAAAwNOMJgrOnz8vSbr99tvzLBsUFGRXpyjt27dPkvTPf/7TFockNWjQQGPHjpUk7d27t8jjAgAAAADA04wmCrK/dG/ZsiXPslu3brWrU5QaN24sSTpy5IjDvsOHD9uVAQAAAADgVmI0URAVFSVJ+u6777Ru3bocy3377bfasGGD/P391bFjR5Mh5Ms777yjUqVKafDgwfr888+1du1arVy5Uu+++67++te/qkqVKnrttdeKPC4AAAAAADzN12RjHTp0UFRUlJYsWaJOnTpp6NChGjBggOrWrWubuHDSpEmaPXu2JOn5559XhQoVTIaQL927d9f69ev10ksv6bnnnrPb9+ijj+rdd99V7dq189VW9qSFN0pOTlZISIiOHz/ucrwAgP/DfRUAACBv1apVK3Rdo4kCSZo2bZp69OihhIQEffHFF/riiy+clnvggQf07rvvmu4+X9LS0vTmm29q0aJF8vHxUc2aNXXlyhWdOHFCM2bMUGBgoP7973/L39/fI/EBAAAAAOApxhMFt99+u9atW6eYmBh999132rx5szIzMyVJZcuWVbt27fT0009r4MCBprvOt/79+2vx4sV6+OGH9fHHH9smX0xOTtawYcMUExMjHx8fffbZZ3m2ldPyh9kjDVzJ4hSVNE8HAAAFUBLuqwAAACWZl2VZljs7yMzMVFpamnx8fFSxYkV5exudFqHAtm3bpjvuuENVqlTR0aNH5efnZ7c/JSVF1apVk7e3t86fP6/SpUsXqp/sREFOiYTiJKlHD0+HAAD5FhYb6+kQAAAAbmpu/9bu6+urqlWrqlKlSh5PEkjS/v37JUnBwcEOSQLpjxERAQEBysrKsq2AAAAAAADArcLz39yLWPaQ1e3bt2vfvn0O+5csWaJz587J29vb9kgCAAAAAAC3CpfmKBg7dqymTp3qUgDjxo3TI4884lIbBdGqVSs1aNBAe/bsUVRUlF555RW1aNFCV69e1cqVK/XBBx9Iku6++26VL1++yOICAAAAAKA4cClRkJKSouTkZJcCSE9Pd6l+QXl7e+uHH37QPffcowMHDujZZ591KBMaGprjag0AAAAAANzMXJrM8ODBg0pJSXEpgJCQEFWtWtWlNgrj1KlTmjRpkpYvX65jx47J29tbtWvX1l133aXBgwerTJkyLrXPZIYA4B5MZggAAOBebl/14FZFogAA3INEAQAAgHvdcpMZAgAAAACAnJEoAAAAAAAANm5LFMybN0+PPvqoGjZsqAoVKqhy5cq64447NGLECMXHx7urWwAAAAAA4AKXVj1wJj09XQMHDlSsk2dIT58+rW3btunLL7/Uc889p48//lje3gxqAAAAAACguDCaKLAsS/fff7+WLFkib29vPfjgg3rggQcUEhKiK1euaO/evZo8ebJWrlypTz/9VP7+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7du3q2nTppKkr7/+Wn/6058cymRlZemVV17Rv/71L1WsWFHHjh1T6dKlTYVQbDCZIQC4B5MZAgAAuJfRyQznz58vy7J0//33O00SSJKPj4/++c9/qn79+jpz5oxWr15tMgQAAAAAAOACo4mCQ4cOSZI6deqUazkfHx917NjRrg4AAAAAAPA8o4kCf39/SdL58+fzLJtdJrsOAAAAAADwPKOJguwlD3/88UdlZWXlWO7kyZNatGiRXR0AAAAAAOB5RhMF9957rwIDA7V161YNGDBABw8edCizZcsW9enTR+np6brjjjvUvHlzkyEAAAAAAAAXGF0esXLlyho/fryGDRum2bNna968eYqIiLAtj5icnKz4+HhZlqUyZcroyy+/NNk9AAAAAABwkdFEgSQNHTpUAQEBeuGFF3TixAmtWLFCK1assCvTpEkTTZ48WREREaa7BwAAAAAALjCeKJCkhx56SPfff79+++03xcXFKTU1VT4+PqpRo4Y6duyoyMhIeXl5uaNrAAAAAADgArckCqQ/VjPo3bu3evfu7a4uAAAAAACAYUYnMwQAAAAAACUbiQIAAAAAAGDjlkcPdu/eralTp2rLli06c+aMsrKyciw7atQo3Xfffe4IAwAAAAAAFJDxRMEXX3yhkSNH6urVq/kq//DDD5sOAQAAAAAAFJLRRMGuXbv05z//WVlZWWrUqJGGDh2qkJAQ+fv751inRYsWJkMAAAAAcIs6evSo9uzZo1OnTunKlSsqXbq0goKCFBoaqkqVKnk6PKDEMJoomD17trKyshQWFqaNGzeqdOnSJpsHAAAAADvHjx/Xt99+q3nz5unw4cNOy3h5ealx48bq16+fHnnkEZUrV66IowRKFqOTGR45ckSSNHDgQJIEAAAAANwmKytLn3/+ubp166aYmJgckwSSZFmWkpKS9O6776pr166aN29eEUYKlDxGRxTcdtttkkSSAAAAAIDbZGRk6Pnnn9eiRYsKXPf06dMaOXKkkpKSNHr0aDdEB5R8RkcUdO3aVZIUHx9vslkAAAAAsPnLX/5SqCTB9SZMmKAJEyYYigi4uRhPFERHR2vWrFn6/fffTTYNAAAAAJoxY4YWLlyY434/Pz916tRJ999/v1q1apVrW+PHj9f27dtNhwiUeEYfPdi2bZuGDBmiTZs2qVevXhoyZIg6duyoqlWr5lin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" style="max-width:78%;height:auto;"/><figcaption style="font-size:10pt;color:#444;margin-top:6px;">Figure 6.1: Flash-crowd false positives — static threshold vs adaptive threshold.</figcaption></figure></section>
+<section class="chapter"><h1>Chapter 7 — Concluding Remarks</h1>
+<blockquote>
+<p><strong>How to use this draft.</strong> The reflections here are written in the first person, as a conclusion
+should be. Please make them genuinely yours — adjust anything that does not match your own
+experience, and keep the honesty about what worked and what was hard, because examiners value it.</p>
+</blockquote>
+<h2>7.1 Accomplishment of the Research Objectives</h2>
+<p>The research set out to design, implement, and evaluate a two-tier, adaptive, in-kernel DDoS defence
+that protects legitimate flash crowds, and each of the four objectives stated in Chapter 1 was met.
+It is worth reviewing each in turn, drawing on the outcomes of the testing chapter rather than on
+assertion.</p>
+<p>The first objective, to <em>identify</em> the constraints of the eBPF/XDP environment and the shortcomings of
+existing defences, was achieved through the literature review and, just as importantly, through direct
+experience of the verifier's limits during development. Working within those limits first-hand made
+concrete what the review described in the abstract, and it confirmed why a bounded decision tree, rather
+than a heavier model, is the appropriate choice near the kernel. The second objective, to <em>analyse</em> how
+flash crowds and attacks differ and how threshold strategies trade detection against false positives,
+was addressed both in the review and, decisively, in the experiment, which showed the trade-off in
+concrete numbers rather than in principle. The third objective, to <em>design and implement</em> the system,
+produced a working prototype comprising a Tier-1 XDP filter, a Tier-2 decision tree trained on
+CIC-IDS-2017, and a control loop that updates the kernel threshold live through the BPF maps; each of
+these parts was demonstrated to work on real traffic in Chapter 5. The fourth objective, to <em>evaluate</em>,
+produced the central result: against a legitimate flash crowd, the adaptive design blocked none of the
+twelve legitimate users while the static baseline blocked all twelve, and both configurations caught the
+attacker.</p>
+<p>Triangulating the three independent strands of evidence — the functional tests that confirm the
+mechanism works, the classifier's 0.86 accuracy on real benchmark data, and the flash-crowd comparison
+that shows the false-positive advantage — the body of evidence supports the claim that the design
+maintains detection while reducing flash-crowd false positives relative to a static baseline. Because
+these strands are independent of one another, their agreement gives more confidence than any one of them
+could alone. The aim stated in Chapter 1 was therefore accomplished.</p>
+<h2>7.2 Problems Encountered</h2>
+<p>The project met several real obstacles, and working through them was itself a substantial part of the
+learning. The first was environmental. On the particular kernel of the development machine, the Tier-1
+program at first failed to compile, because the standard networking headers pulled in a much larger
+kernel header that the bundled compiler rejected outright. Diagnosing this required reading the compiler
+output carefully enough to see that the failure lay in an unrelated header rather than in the program's
+own logic. It was resolved by switching to the lighter user-facing (uapi) headers and by suppressing a
+warning that a newer compiler had promoted to a fatal error — a change that altered no logic whatsoever
+and left the maps, the behaviour, and the results untouched, but without which the system would not run
+on that machine at all.</p>
+<p>The second obstacle was a subtle testing artefact rather than a fault in the system. When the whole
+evaluation was first attempted on a single machine over the loopback interface, a low threshold caused
+the machine's own measurement traffic to cross the limit and be dropped, which silenced the dashboard
+and produced confusing, empty readings. Recognising that the measurement channel itself was being
+filtered by the very mechanism under test was an important realisation, and it led directly to the more
+robust approach adopted in the evaluation: reading the kernel maps directly and generating traffic from
+distinct, spoofed source addresses so that the measurement path stayed clear.</p>
+<p>The third obstacle was a genuine design limitation in the machine-learning tier, and it is discussed
+openly rather than hidden. The features the model was trained on were drawn from the dataset's rich,
+per-flow records, whereas the features available at run time were the simpler per-source counts the
+kernel maintains, so the two did not correspond as closely as they should. This did not affect the
+kernel filtering, the adaptation, or the flash-crowd result, but it does mean the live classifier is
+weaker than the offline accuracy figure alone would suggest, and for that reason addressing it is the
+first item in the future work.</p>
+<h2>7.3 Self-reflection</h2>
+<h3>7.3.1 Ideology about the research</h3>
+<p>My view of the work is that its value lies less in any single component than in the way the components
+fit together to serve one clear purpose: stopping attacks without punishing real users. Over the course
+of the project I came to believe strongly that a defence ought to be judged not only by what it blocks
+but by what it wrongly blocks, and that measuring the second is as important as measuring the first. That
+conviction is, in a sense, the intellectual core of the whole dissertation, and it is the lens through
+which I would now approach any protective system.</p>
+<h3>7.3.2 Benefits gained</h3>
+<p>The most tangible benefit was learning to work at the kernel level with eBPF and XDP, a technology I had
+not previously touched, and learning to reason carefully about the boundary between the fast kernel path
+and the slower userspace path. I also gained practical experience of training and evaluating a model on a
+recognised security dataset, and, more broadly, of building an end-to-end system in which many parts must
+cooperate correctly, rather than an isolated script that does one thing. The habit of building and
+verifying in small, testable steps is a benefit I expect to carry into future work.</p>
+<h3>7.3.3 Learning curves</h3>
+<p>The steepest learning curve was undoubtedly the eBPF verifier and the surrounding toolchain, where
+problems could not always be anticipated and often had to be discovered by running the code and reading
+the results. Debugging behaviour that spans the kernel and userspace at once was also new and demanding,
+because the cause of a symptom in one world frequently lay in the other. Undertaking a system of this
+kind with very little prior programming background was challenging throughout, and it was the iterative,
+milestone-by-milestone method — proving each small piece before moving on — that made an otherwise
+daunting project manageable.</p>
+<h2>7.4 Business Insight</h2>
+<h3>7.4.1 Real-world application possibilities</h3>
+<p>The idea has clear and immediate practical relevance. Any service that experiences legitimate surges —
+ticketing platforms, online retailers during sales, media sites during major events, or public-sector
+portals at deadlines — faces exactly the problem this project targets: a defence that overreacts to a
+spike can turn away the very customers that a surge represents, converting a moment of opportunity into a
+moment of loss. A two-tier, flash-crowd-aware filter that runs cheaply on the host and escalates only
+doubtful traffic could reduce both the impact of attacks and the revenue and reputation lost to wrongly
+blocked users, addressing two costs that are usually treated separately. Because the approach uses
+standard Linux facilities rather than specialised hardware, it is also comparatively inexpensive to
+adopt, which lowers the barrier for smaller operators who cannot afford dedicated scrubbing
+infrastructure. In commercial terms, the distinctive selling point is not merely that the system stops
+attacks, but that it does so while protecting the customer experience during the busiest and most
+valuable periods.</p>
+<h2>7.5 Future Recommendations</h2>
+<p>Several concrete steps would extend and strengthen the work. First, and most importantly, the
+machine-learning tier should be retrained on features that can actually be computed at run time, so that
+training and inference operate on the same representation; achieving this may require measuring a few
+additional cheap per-source signals inside the kernel, which would also turn the current limitation into
+a contribution about verifier-friendly feature design. Second, the evaluation should be repeated across
+several machines or virtual machines to provide genuinely distinct users, with the live adaptive loop
+choosing the threshold automatically and each scenario run several times so that the results can be
+reported with a mean and a variance rather than as a single demonstration. Third, the comparison should
+be broadened to include at least one prior published method as a baseline, not only a static threshold,
+so that the system is positioned quantitatively against the state of the art. Beyond these, supporting
+IPv6, examining application-layer surges, and studying the system's behaviour under a wider range of
+attack patterns would broaden its reach and its evidential base. Taken together, these steps would move
+the work from a convincing prototype towards a result strong enough for peer-reviewed publication, and
+they define a clear and realistic path for anyone who wishes to continue it.
+</content></p></section>
+</body></html>

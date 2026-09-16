@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Cerberus thesis diagrams" version="24.7.5">
+  <diagram id="usecase-page" name="Use Case Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- System boundary -->
+        <mxCell id="u-boundary" value="Cerberus" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=14;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="220" y="30" width="620" height="560" as="geometry" />
+        </mxCell>
+
+        <!-- Actors -->
+        <mxCell id="u-actor-operator" value="Operator" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="130" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="u-actor-attacker" value="Attacker" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="u-actor-traffic" value="Traffic Generator" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="470" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Operator use cases -->
+        <mxCell id="u-uc-status" value="View Live Status" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="60" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u-uc-threshold" value="Set Threshold Manually" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="130" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u-uc-adaptive" value="Enable / Disable Adaptive Mode" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="200" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u-uc-clear" value="Clear Counters" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="270" width="170" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Traffic Generator use cases -->
+        <mxCell id="u-uc-startattack" value="Start Attack Traffic" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="400" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u-uc-startflash" value="Start Flash-Crowd Traffic" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="470" width="170" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Internal use cases -->
+        <mxCell id="u-uc-filter" value="Filter Packets" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="520" y="150" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u-uc-escalate" value="Escalate Ambiguous Source" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="510" y="250" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u-uc-adapt" value="Adapt Threshold" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="520" y="350" width="170" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Associations: Operator -->
+        <mxCell id="e1" style="edgeStyle=none;html=1;endArrow=none;startArrow=none;fontSize=10;" edge="1" parent="1" source="u-actor-operator" target="u-uc-status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;html=1;endArrow=none;startArrow=none;fontSize=10;" edge="1" parent="1" source="u-actor-operator" target="u-uc-threshold">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;html=1;endArrow=none;startArrow=none;fontSize=10;" edge="1" parent="1" source="u-actor-operator" target="u-uc-adaptive">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=none;html=1;endArrow=none;startArrow=none;fontSize=10;" edge="1" parent="1" source="u-actor-operator" target="u-uc-clear">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Associations: Traffic Generator -->
+        <mxCell id="e5" style="edgeStyle=none;html=1;endArrow=none;startArrow=none;fontSize=10;" edge="1" parent="1" source="u-actor-traffic" target="u-uc-startattack">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;html=1;endArrow=none;startArrow=none;fontSize=10;" edge="1" parent="1" source="u-actor-traffic" target="u-uc-startflash">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Association: Attacker -> Filter Packets -->
+        <mxCell id="e7" style="edgeStyle=none;html=1;endArrow=none;startArrow=none;fontSize=10;" edge="1" parent="1" source="u-actor-attacker" target="u-uc-filter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Include relationships -->
+        <mxCell id="e8" value="&#171;include&#187;" style="edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;fontSize=10;fontStyle=2;" edge="1" parent="1" source="u-uc-filter" target="u-uc-escalate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="&#171;include&#187;" style="edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;fontSize=10;fontStyle=2;" edge="1" parent="1" source="u-uc-filter" target="u-uc-adapt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="u-legend" value="Blue ellipses = internal use cases (not directly triggered by an external actor)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="220" y="600" width="500" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="class-page" name="Class Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- BpfSession -->
+        <mxCell id="c-bpfsession" value="BpfSession" style="swimlane;html=1;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;startSize=26;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="390" y="30" width="230" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="c-bpfsession-attr" value="- b: BPF&#10;- device: str&#10;- attached: bool" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-bpfsession">
+          <mxGeometry x="0" y="0" width="230" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="c-bpfsession-div" style="line;html=1;strokeWidth=1;" vertex="1" parent="c-bpfsession">
+          <mxGeometry x="0" y="44" width="230" height="6" as="geometry" />
+        </mxCell>
+        <mxCell id="c-bpfsession-meth" value="+ attach(iface, threshold)&#10;+ detach()&#10;+ read_totals()&#10;+ top_ips(n, threshold)&#10;+ get_threshold()&#10;+ set_threshold(value)&#10;+ clear_counts()" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-bpfsession">
+          <mxGeometry x="0" y="50" width="230" height="98" as="geometry" />
+        </mxCell>
+
+        <!-- Collector -->
+        <mxCell id="c-collector" value="Collector" style="swimlane;html=1;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;startSize=26;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="c-collector-attr" value="- session: BpfSession&#10;- interval: float&#10;- soft_ratio: float" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-collector">
+          <mxGeometry x="0" y="0" width="220" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="c-collector-div" style="line;html=1;strokeWidth=1;" vertex="1" parent="c-collector">
+          <mxGeometry x="0" y="44" width="220" height="6" as="geometry" />
+        </mxCell>
+        <mxCell id="c-collector-meth" value="+ start()&#10;+ stop()&#10;+ tick()" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-collector">
+          <mxGeometry x="0" y="50" width="220" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- ControlLoop -->
+        <mxCell id="c-controlloop" value="ControlLoop" style="swimlane;html=1;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;startSize=26;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="390" y="250" width="230" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="c-controlloop-attr" value="- session: BpfSession&#10;- ewma_rate: float&#10;- min_threshold: int&#10;- max_threshold: int" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-controlloop">
+          <mxGeometry x="0" y="0" width="230" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="c-controlloop-div" style="line;html=1;strokeWidth=1;" vertex="1" parent="c-controlloop">
+          <mxGeometry x="0" y="58" width="230" height="6" as="geometry" />
+        </mxCell>
+        <mxCell id="c-controlloop-meth" value="+ start()&#10;+ stop()&#10;+ set_enabled(enabled)&#10;+ tick()" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-controlloop">
+          <mxGeometry x="0" y="64" width="230" height="84" as="geometry" />
+        </mxCell>
+
+        <!-- Classifier -->
+        <mxCell id="c-classifier" value="classify (ml module)" style="swimlane;html=1;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;startSize=26;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="700" y="250" width="230" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c-classifier-attr" value="- model: DecisionTreeClassifier" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-classifier">
+          <mxGeometry x="0" y="0" width="230" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="c-classifier-div" style="line;html=1;strokeWidth=1;" vertex="1" parent="c-classifier">
+          <mxGeometry x="0" y="28" width="230" height="6" as="geometry" />
+        </mxCell>
+        <mxCell id="c-classifier-meth" value="+ classify_flow(features) : (label, score)" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-classifier">
+          <mxGeometry x="0" y="34" width="230" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- DB -->
+        <mxCell id="c-db" value="db" style="swimlane;html=1;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;startSize=26;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="60" y="450" width="220" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c-db-attr" value="- conn: sqlite3.Connection" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-db">
+          <mxGeometry x="0" y="0" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="c-db-div" style="line;html=1;strokeWidth=1;" vertex="1" parent="c-db">
+          <mxGeometry x="0" y="28" width="220" height="6" as="geometry" />
+        </mxCell>
+        <mxCell id="c-db-meth" value="+ init_db()&#10;+ insert_snapshot(...)&#10;+ insert_event(...)&#10;+ insert_ip_stats(...)" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-db">
+          <mxGeometry x="0" y="34" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- API -->
+        <mxCell id="c-api" value="api (FastAPI app)" style="swimlane;html=1;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;startSize=26;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="390" y="470" width="230" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c-api-attr" value="- session: BpfSession&#10;- collector: Collector&#10;- control_loop: ControlLoop" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-api">
+          <mxGeometry x="0" y="0" width="230" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="c-api-div" style="line;html=1;strokeWidth=1;" vertex="1" parent="c-api">
+          <mxGeometry x="0" y="44" width="230" height="6" as="geometry" />
+        </mxCell>
+        <mxCell id="c-api-meth" value="+ api_status()&#10;+ api_top(limit)&#10;+ api_threshold(value)&#10;+ api_adaptive(enabled)" style="text;html=1;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;whiteSpace=wrap;" vertex="1" parent="c-api">
+          <mxGeometry x="0" y="50" width="230" height="84" as="geometry" />
+        </mxCell>
+
+        <!-- Associations: "uses" -->
+        <mxCell id="ce1" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-collector" target="c-bpfsession">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ce2" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-controlloop" target="c-bpfsession">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ce3" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-collector" target="c-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ce4" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-collector" target="c-classifier">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ce5" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-api" target="c-bpfsession">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ce6" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-api" target="c-collector">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ce7" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-api" target="c-controlloop">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ce8" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=1;fontSize=10;" edge="1" parent="1" source="c-api" target="c-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="activity-page" name="Activity Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1050" pageHeight="760" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== LEFT FLOW: Tier-1 kernel packet path ===== -->
+        <mxCell id="a-title1" value="Tier-1: Kernel Packet Path (runs once per packet)" style="text;html=1;align=left;verticalAlign=middle;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="10" width="340" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a-start1" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="148" y="40" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="a-1" value="Packet arrives at XDP hook" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-d1" value="Ethernet + IPv4 headers valid and packet is IPv4?" style="rhombus;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="a-2" value="Increment ip_count[src]" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-3" value="Read threshold from config map" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-d2" value="count &gt;= threshold?" style="rhombus;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="440" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- No branch of headers-valid: early exit -->
+        <mxCell id="a-exit" value="Return XDP_PASS (early exit)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="360" y="195" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-end-exit" value="" style="ellipse;shape=doubleEllipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="445" y="270" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Yes branch of threshold: dropped -->
+        <mxCell id="a-4" value="Increment dropped tally" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="360" y="440" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-5" value="Return XDP_DROP" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="360" y="510" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-end-drop" value="" style="ellipse;shape=doubleEllipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="445" y="580" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- No branch of threshold: passed -->
+        <mxCell id="a-6" value="Increment passed tally" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="560" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-7" value="Return XDP_PASS" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="630" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-end-pass" value="" style="ellipse;shape=doubleEllipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="145" y="700" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Left flow edges -->
+        <mxCell id="ae1" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-start1" target="a-1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae2" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-1" target="a-d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae3" value="yes" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1" source="a-d1" target="a-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae4" value="no" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1" source="a-d1" target="a-exit"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae5" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-exit" target="a-end-exit"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae6" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-2" target="a-3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae7" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-3" target="a-d2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae8" value="yes" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1" source="a-d2" target="a-4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae9" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-4" target="a-5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae10" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-5" target="a-end-drop"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae11" value="no" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1" source="a-d2" target="a-6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae12" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-6" target="a-7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae13" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="a-7" target="a-end-pass"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ===== RIGHT FLOW: Userspace escalation tick ===== -->
+        <mxCell id="a-title2" value="Userspace: Escalation Tick (runs independently, once per second)" style="text;html=1;align=left;verticalAlign=middle;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="680" y="10" width="360" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b-start" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="808" y="40" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="b-1" value="Read BPF maps (totals + top sources)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="90" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b-d1" value="source count in the ambiguous band?" style="rhombus;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="720" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b-end-no" value="" style="ellipse;shape=doubleEllipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="960" y="180" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="b-2" value="Escalate: call classify_flow(source)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="710" y="270" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b-3" value="Record ml event (label, score)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=30;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="710" y="340" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b-end-yes" value="" style="ellipse;shape=doubleEllipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="805" y="410" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="be1" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="b-start" target="b-1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be2" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="b-1" target="b-d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be3" value="no" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1" source="b-d1" target="b-end-no"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be4" value="yes" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1" source="b-d1" target="b-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be5" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="b-2" target="b-3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be6" style="html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="b-3" target="b-end-yes"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="a-note" value="The two flows run independently: the left flow executes inside the kernel for every packet; the right flow runs in userspace on its own one-second timer and never blocks packet forwarding." style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="30" y="740" width="900" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="seq-filter-page" name="Sequence - Filtering">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="420" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="sf-title" value="Filtering sequence (Tier 1, entirely inside the kernel)" style="text;html=1;align=left;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sf-p1" value="Attacker / Legitimate Traffic" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sf-p2" value="XDP Hook (xdp_ddos.c)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="40" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sf-p3" value="BPF Maps" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="40" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sf-l1" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="120" y="70" as="sourcePoint" /><mxPoint x="120" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sf-l2" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="410" y="70" as="sourcePoint" /><mxPoint x="410" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sf-l3" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="690" y="70" as="sourcePoint" /><mxPoint x="690" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="sf-m1" value="packet arrives" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="120" y="110" as="sourcePoint" /><mxPoint x="410" y="110" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sf-m2" value="increment ip_count[src]" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="410" y="180" as="sourcePoint" /><mxPoint x="690" y="180" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sf-m3" value="read config[0] (threshold)" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="410" y="250" as="sourcePoint" /><mxPoint x="690" y="250" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sf-m4" value="verdict: XDP_DROP or XDP_PASS" style="html=1;endArrow=block;endFill=1;dashed=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="410" y="330" as="sourcePoint" /><mxPoint x="120" y="330" as="targetPoint" /></mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="seq-escalate-page" name="Sequence - Escalation">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="420" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="se-title" value="Escalation sequence (Tier 2, userspace, ambiguous sources only)" style="text;html=1;align=left;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="550" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="se-p1" value="Collector" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="se-p2" value="BPF Maps" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="280" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="se-p3" value="Classifier (ml.classify)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="520" y="40" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="se-p4" value="Database" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="770" y="40" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="se-l1" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="115" y="70" as="sourcePoint" /><mxPoint x="115" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="se-l2" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="355" y="70" as="sourcePoint" /><mxPoint x="355" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="se-l3" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="600" y="70" as="sourcePoint" /><mxPoint x="600" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="se-l4" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="830" y="70" as="sourcePoint" /><mxPoint x="830" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="se-m1" value="read top sources / totals (1s tick)" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="115" y="110" as="sourcePoint" /><mxPoint x="355" y="110" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="se-note" value="[soft &lt;= count &lt; threshold]  -  source is ambiguous" style="text;html=1;align=left;fontStyle=2;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="115" y="150" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="se-m2" value="classify_flow(count, threshold)" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="115" y="200" as="sourcePoint" /><mxPoint x="600" y="200" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="se-m3" value="return (label, score)" style="html=1;endArrow=block;endFill=1;dashed=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="600" y="260" as="sourcePoint" /><mxPoint x="115" y="260" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="se-m4" value="insert_event('ml', label, score)" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="115" y="320" as="sourcePoint" /><mxPoint x="830" y="320" as="targetPoint" /></mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="seq-adapt-page" name="Sequence - Adaptation">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="480" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="sa-title" value="Adaptation sequence (threshold updates - manual or automatic, both reload-free)" style="text;html=1;align=left;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="600" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sa-p1" value="Operator" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sa-p2" value="API (FastAPI)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sa-p3" value="BPF Maps (config)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sa-p4" value="ControlLoop" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sa-l1" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="110" y="70" as="sourcePoint" /><mxPoint x="110" y="440" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sa-l2" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="330" y="70" as="sourcePoint" /><mxPoint x="330" y="440" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sa-l3" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="555" y="70" as="sourcePoint" /><mxPoint x="555" y="440" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sa-l4" style="html=1;endArrow=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="785" y="70" as="sourcePoint" /><mxPoint x="785" y="440" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="sa-m1" value="POST /api/threshold {value}" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="110" y="110" as="sourcePoint" /><mxPoint x="330" y="110" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sa-m2" value="set_threshold(value)" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="330" y="170" as="sourcePoint" /><mxPoint x="555" y="170" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="sa-div" value="OR - automatic path, no operator involved" style="text;html=1;align=center;fontStyle=2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="220" width="675" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sa-divline" style="html=1;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="80" y="245" as="sourcePoint" /><mxPoint x="880" y="245" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="sa-m3" value="read totals (2s tick)" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="785" y="280" as="sourcePoint" /><mxPoint x="555" y="280" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sa-note" value="[compute EWMA-smoothed rate; derive candidate threshold]" style="text;html=1;align=right;fontStyle=2;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="560" y="320" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sa-m4" value="write new threshold into config[0]" style="html=1;endArrow=block;endFill=1;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="785" y="370" as="sourcePoint" /><mxPoint x="555" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="sa-note2" value="Next packet at the XDP hook reads this new value immediately - no reload." style="text;html=1;align=left;fontStyle=2;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="110" y="410" width="500" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

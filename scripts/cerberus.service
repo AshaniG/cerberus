@@ -1,0 +1,26 @@
+[Unit]
+# systemd service so Cerberus runs 24/7 and restarts on reboot / crash.
+# Install on the VM with:
+#   sudo cp scripts/cerberus.service /etc/systemd/system/cerberus.service
+#   (edit the two paths + the interface name below to match your VM)
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cerberus
+#   sudo systemctl status cerberus     # check it is running
+#   sudo journalctl -u cerberus -f     # watch its live logs
+Description=Cerberus eBPF/XDP DDoS detection (full stack)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# EDIT these to match your VM:
+WorkingDirectory=/home/ubuntu/cerberus
+ExecStart=/usr/bin/python3 backend/serve.py ens3 --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=5
+# serve.py loads .env itself; this points it at the right file too.
+EnvironmentFile=-/home/ubuntu/cerberus/.env
+User=root
+
+[Install]
+WantedBy=multi-user.target

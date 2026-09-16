@@ -1,0 +1,134 @@
+/<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cerberus — DDoS Guard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/styles.css?v=3" />
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"></div>
+      <div>
+        <h1>Cerberus</h1>
+        <p class="tag">Kernel-level two-tier adaptive DDoS guard</p>
+      </div>
+    </div>
+    <div class="badges" id="badges"></div>
+  </header>
+
+  <main>
+    <div id="mode-banner" class="mode-banner" hidden></div>
+    <div id="activity" class="activity" hidden></div>
+
+    <section class="metrics" id="metrics">
+      <article>
+        <span class="label">Seen</span>
+        <strong id="m-seen">—</strong>
+        <span class="sub" id="m-seen-sub">packets</span>
+      </article>
+      <article>
+        <span class="label">Dropped</span>
+        <strong id="m-dropped">—</strong>
+        <span class="sub" id="m-dropped-sub">XDP_DROP</span>
+      </article>
+      <article>
+        <span class="label">Passed</span>
+        <strong id="m-passed">—</strong>
+        <span class="sub">XDP_PASS</span>
+      </article>
+      <article>
+        <span class="label">Threshold</span>
+        <strong id="m-thr">—</strong>
+        <span class="sub">per source IP</span>
+      </article>
+    </section>
+
+    <section class="grid">
+      <div class="panel chart-panel">
+        <div class="panel-head">
+          <h2>Traffic timeline</h2>
+          <span class="chip" id="chart-chip">waiting</span>
+        </div>
+        <canvas id="chart" height="140"></canvas>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Top sources</h2>
+          <span class="chip" id="top-chip">—</span>
+        </div>
+        <table>
+          <thead><tr><th>IP</th><th>Count</th><th>Action</th></tr></thead>
+          <tbody id="top-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="grid controls-grid">
+      <div class="panel" id="panel-controls">
+        <h2>Kernel controls</h2>
+        <p class="hint" id="controls-hint">Requires live XDP (`sudo python3 backend/serve.py &lt;iface&gt;`).</p>
+        <div class="row">
+          <label>Threshold <input type="number" id="thr-input" min="1" value="250" /></label>
+          <button type="button" id="btn-thr">Set</button>
+          <button type="button" id="btn-clear" class="ghost">Clear counters</button>
+        </div>
+        <div class="row">
+          <button type="button" id="btn-adaptive-on">Adaptive ON</button>
+          <button type="button" id="btn-adaptive-off" class="ghost">Adaptive OFF</button>
+        </div>
+      </div>
+      <div class="panel panel-demo">
+        <h2>Demo traffic</h2>
+        <p class="hint">Works even without XDP — starts generators and (on Mac) UI preview counters.</p>
+        <div class="row">
+          <label>Target IP <input type="text" id="target" value="127.0.0.1" placeholder="this host IP" /></label>
+          <label>Rate <input type="number" id="rate" value="200" min="1" /></label>
+        </div>
+        <div class="row">
+          <button type="button" id="btn-attack" class="danger-btn">Start attack</button>
+          <button type="button" id="btn-attack-stop" class="ghost">Stop attack</button>
+        </div>
+        <div class="row">
+          <button type="button" id="btn-flash">Start flash crowd</button>
+          <button type="button" id="btn-flash-stop" class="ghost">Stop flash</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Recent events</h2>
+        <span class="chip" id="events-chip">live</span>
+      </div>
+      <ul id="events" class="events"></ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Command console</h2>
+        <span class="chip">type "help"</span>
+      </div>
+      <div id="console-output" class="console-output"></div>
+      <div class="console-input-row">
+        <span class="console-prompt">$</span>
+        <input type="text" id="console-input" class="console-input" autocomplete="off" placeholder="status, top, attack, threshold 300, clear, events, help" />
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="iface">iface —</span>
+    <span id="mode">mode —</span>
+    <span id="footer-note">poll 1s</span>
+  </footer>
+  <div id="toast" class="toast" hidden></div>
+  <script src="/static/app.js?v=3"></script>
+</body>
+</html>
